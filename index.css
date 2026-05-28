@@ -121,3 +121,29 @@ body {
 ::-webkit-scrollbar-thumb:hover {
   background: var(--accent);
 }
+
+/* Styles spécifique Impression Stitch */
+.loading-shimmer {
+  background: linear-gradient(90deg, transparent, rgba(212, 63, 0, 0.2), transparent);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite linear;
+}
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.progress-block {
+  animation: pulse-orange 1s infinite alternate;
+}
+@keyframes pulse-orange {
+  from { background-color: #d43f00; }
+  to { background-color: #aa3000; }
+}
+
+.ticket-perforation {
+  background-image: radial-gradient(var(--background) 2px, transparent 0);
+  background-size: 8px 8px;
+  background-position: -4px -4px;
+}
+

@@ -119,6 +119,9 @@
       <button id="nav-btn-history" class="text-primary font-medium hover:bg-surface-container-high transition-colors duration-75 px-3 py-1 border-2 border-transparent font-mono-labels text-xs uppercase" onclick="switchView('history')">
         Historique
       </button>
+      <button id="nav-btn-print" class="text-primary font-medium hover:bg-surface-container-high transition-colors duration-75 px-3 py-1 border-2 border-transparent font-mono-labels text-xs uppercase" onclick="switchView('print')">
+        Imprimante
+      </button>
       <button id="nav-btn-marketing" class="text-primary font-medium hover:bg-surface-container-high transition-colors duration-75 px-3 py-1 border-2 border-transparent font-mono-labels text-xs uppercase" onclick="switchView('marketing')">
         Marketing
       </button>
@@ -150,7 +153,7 @@
       </div>
     </div>
     <!-- Liens de navigation bar latérale -->
-    <nav class="flex-1 overflow-y-auto">
+    <nav class="flex-grow">
       <button id="side-btn-live" class="flex items-center gap-4 bg-primary text-on-primary p-4 w-full border-b border-primary text-left" onclick="switchView('live')">
         <span class="material-symbols-outlined">barcode_scanner</span>
         <span class="font-mono-labels text-xs uppercase">Scanner Live</span>
@@ -158,6 +161,10 @@
       <button id="side-btn-history" class="flex items-center gap-4 text-primary p-4 w-full border-b border-primary hover:bg-secondary-container hover:text-on-secondary-container transition-colors text-left" onclick="switchView('history')">
         <span class="material-symbols-outlined">history_edu</span>
         <span class="font-mono-labels text-xs uppercase">Journal de scan</span>
+      </button>
+      <button id="side-btn-print" class="flex items-center gap-4 text-primary p-4 w-full border-b border-primary hover:bg-secondary-container hover:text-on-secondary-container transition-colors text-left" onclick="switchView('print')">
+        <span class="material-symbols-outlined">print</span>
+        <span class="font-mono-labels text-xs uppercase">Imprimantes</span>
       </button>
       <button id="side-btn-marketing" class="flex items-center gap-4 text-primary p-4 w-full border-b border-primary hover:bg-secondary-container hover:text-on-secondary-container transition-colors text-left" onclick="switchView('marketing')">
         <span class="material-symbols-outlined">description</span>
@@ -580,6 +587,299 @@
         </div>
       </div>
     </section>
+
+    <!-- ==================== VUE 6 : IMPRIMANTE ==================== -->
+    <section id="view-print" class="hidden flex-1 p-6 md:p-12 grid-bg">
+      <!-- 1. CONFIGURATION & PREVIEW STATE -->
+      <div id="print-state-config" class="w-full max-w-5xl mx-auto flex flex-col gap-6">
+        <!-- Header Info Section -->
+        <div class="w-full flex flex-col md:flex-row justify-between items-start md:items-end gap-4 pb-6 border-b-2 border-primary/10">
+          <div>
+            <span class="font-mono-labels text-xs text-secondary font-black uppercase bg-secondary-fixed px-2 py-1" id="print-mode-badge">Mode: Impression Locale</span>
+            <h1 class="text-2xl md:text-3xl font-black mt-2 uppercase tracking-tight">Configuration de l'imprimante</h1>
+          </div>
+          <div class="font-mono-labels text-xs text-right hidden md:block">
+            <p>LATENCY: 12MS // STATUS: READY</p>
+            <p>SECURE_CHANNEL: 0x1B // ENCRYPTION: AES-256</p>
+          </div>
+        </div>
+        
+        <!-- Preview & Controls Grid -->
+        <div class="w-full grid grid-cols-1 lg:grid-cols-12 gap-6 border-2 border-primary bg-primary overflow-hidden">
+          <!-- LEFT: Ticket Preview -->
+          <div class="lg:col-span-8 bg-surface-low p-6 md:p-12 flex items-center justify-center relative overflow-hidden">
+            <!-- Background Decorative Grid -->
+            <div class="absolute inset-0 opacity-10 pointer-events-none grid-bg"></div>
+            
+            <!-- The Ticket -->
+            <div class="relative w-full max-w-[400px] bg-white border-2 border-primary hard-shadow flex flex-col transition-transform hover:-translate-y-1 hover:-translate-x-1 duration-300">
+              <!-- Ticket Header -->
+              <div class="p-6 border-b-2 border-primary flex flex-col gap-2 text-left">
+                <div class="flex justify-between items-start">
+                  <span class="font-mono-labels text-[10px] uppercase font-black text-secondary" id="ticket-asset-id">Asset ID: 9022-X</span>
+                  <span class="material-symbols-outlined text-[16px]">barcode_scanner</span>
+                </div>
+                <h2 class="text-xl md:text-2xl font-black leading-none uppercase text-left" id="ticket-title">Industrial Servo Motor X-90</h2>
+              </div>
+              <!-- Ticket Body -->
+              <div class="p-6 flex flex-col gap-6 items-center border-b-2 border-dashed border-primary/30 relative">
+                <!-- Simulated Barcode -->
+                <div class="w-full h-20 bg-primary flex gap-1 p-2">
+                  <div class="h-full bg-white flex-1"></div>
+                  <div class="h-full bg-white w-1"></div>
+                  <div class="h-full bg-white flex-1"></div>
+                  <div class="h-full bg-white w-2"></div>
+                  <div class="h-full bg-white w-1"></div>
+                  <div class="h-full bg-white flex-1"></div>
+                  <div class="h-full bg-white w-3"></div>
+                  <div class="h-full bg-white flex-1"></div>
+                  <div class="h-full bg-white w-1"></div>
+                  <div class="h-full bg-white flex-1"></div>
+                </div>
+                <div class="text-center">
+                  <div class="font-mono-labels text-[10px] uppercase mb-[-4px]">Prix de l'article</div>
+                  <div class="text-3xl md:text-4xl font-black text-primary" id="ticket-price">482.50 da</div>
+                </div>
+              </div>
+              <!-- Ticket Footer -->
+              <div class="p-4 bg-surface-low flex flex-col gap-1 items-center justify-center">
+                <div class="font-mono-labels text-[10px] font-bold tracking-widest uppercase" id="ticket-ref">Ref: SRV-X90-BL</div>
+                <div class="font-mono-labels text-[8px] text-gray-500 uppercase" id="ticket-date">Generated by Scan_Core_V.01 // 2026.05.28</div>
+              </div>
+              <!-- Perforation Cuts -->
+              <div class="absolute left-[-6px] top-1/2 -translate-y-1/2 w-3 h-6 bg-surface-low rounded-full border-r-2 border-primary ticket-perforation"></div>
+              <div class="absolute right-[-6px] top-1/2 -translate-y-1/2 w-3 h-6 bg-surface-low rounded-full border-l-2 border-primary ticket-perforation"></div>
+            </div>
+          </div>
+          
+          <!-- RIGHT: Control Panel -->
+          <div class="lg:col-span-4 bg-white border-t-2 lg:border-t-0 lg:border-l-2 border-primary flex flex-col">
+            <div class="p-6 flex-grow flex flex-col gap-6 text-left">
+              <div>
+                <label class="font-mono-labels text-xs uppercase font-black block mb-2">Mode de fonctionnement</label>
+                <div class="grid grid-cols-2 gap-px border border-primary bg-primary">
+                  <button id="print-type-thermal" class="bg-primary text-white font-mono-labels text-xs p-3 uppercase font-bold" onclick="selectPrintType('Thermal')">Thermique</button>
+                  <button id="print-type-inkjet" class="bg-white text-primary font-mono-labels text-xs p-3 uppercase hover:bg-secondary-container hover:text-white transition-colors font-bold" onclick="selectPrintType('Inkjet')">Jet d'encre</button>
+                </div>
+              </div>
+              <div>
+                <label class="font-mono-labels text-xs uppercase font-black block mb-2">Nombre d'exemplaires</label>
+                <input id="print-copies" class="w-full h-12 border-2 border-primary px-3 text-lg focus:ring-0 focus:border-secondary outline-none rounded-none font-bold" min="1" type="number" value="1">
+              </div>
+              <div class="p-4 bg-secondary/5 border-l-4 border-secondary flex gap-3 items-start">
+                <span class="material-symbols-outlined text-secondary">info</span>
+                <div>
+                  <div class="font-mono-labels text-[10px] font-black text-secondary uppercase">Alerte Système</div>
+                  <p class="font-mono-labels text-[11px] leading-tight text-gray-600">Assurez-vous que le rouleau de papier thermique 80mm est inséré dans le bac avant de confirmer.</p>
+                </div>
+              </div>
+            </div>
+            <div class="mt-auto border-t-2 border-primary flex flex-col">
+              <button class="w-full bg-primary text-white py-6 font-bold text-sm uppercase tracking-widest flex items-center justify-center gap-3 hover:bg-secondary transition-all" onclick="triggerActualPrintJob()">
+                <span class="material-symbols-outlined">print</span>
+                Confirmer & Imprimer
+              </button>
+              <button class="w-full bg-white text-primary py-4 font-bold text-xs uppercase tracking-widest border-t-2 border-primary hover:bg-black hover:text-white transition-all" onclick="switchView('live')">
+                Annuler
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 2. TRANSMISSION/PROCESSING STATE -->
+      <div id="print-state-processing" class="hidden max-w-4xl mx-auto w-full flex flex-col gap-6">
+        <!-- Status Indicators Row -->
+        <div class="grid grid-cols-12 gap-px border-2 border-primary bg-primary h-12 shrink-0">
+          <div class="col-span-4 flex items-center px-4 bg-white font-mono-labels text-[11px] text-left">
+            STATUT_TÂCHE : CHARGEMENT_RESSOURCES
+          </div>
+          <div class="col-span-5 flex items-center px-4 bg-white font-mono-labels text-[11px] border-l-2 border-primary text-left">
+            PROCESSEUR_CENTRAL : SYNCHRONISATION_NŒUD_04
+          </div>
+          <div class="col-span-3 flex items-center px-4 bg-white font-mono-labels text-[11px] text-secondary font-bold border-l-2 border-primary text-left" id="processing-latency">
+            LATENCE : 12ms
+          </div>
+        </div>
+        
+        <!-- Main Central Loading Area -->
+        <div class="border-2 border-primary bg-surface-low p-6 md:p-12 flex flex-col items-center justify-center relative overflow-hidden min-h-[350px]">
+          <!-- Technical Grid Pattern Overlay -->
+          <div class="absolute inset-0 opacity-5 pointer-events-none grid-bg"></div>
+          
+          <!-- Brutalist Scanning Animation Box -->
+          <div class="w-full max-w-[480px] h-[280px] bg-white border-2 border-primary hard-shadow relative z-10 flex flex-col">
+            <div class="border-b-2 border-primary px-4 py-2 flex justify-between items-center bg-primary text-on-primary">
+              <div class="font-mono-labels text-xs uppercase font-bold">DATA_TRANSMISSION_VISUALIZER</div>
+              <div class="flex gap-1">
+                <div class="w-2.5 h-2.5 bg-white"></div>
+                <div class="w-2.5 h-2.5 bg-secondary"></div>
+              </div>
+            </div>
+            <div class="flex-grow relative bg-surface-low p-4 overflow-hidden">
+              <div class="scan-line"></div>
+              <!-- Dummy Data Blocks for Scanning Visual -->
+              <div class="grid grid-cols-8 gap-2 h-full opacity-20">
+                <div class="bg-primary h-6"></div><div class="bg-primary h-6"></div><div class="bg-primary h-6"></div><div class="bg-primary h-6"></div>
+                <div class="bg-primary h-6"></div><div class="bg-primary h-6"></div><div class="bg-primary h-6"></div><div class="bg-primary h-6"></div>
+                <div class="bg-primary h-6"></div><div class="bg-primary h-6"></div><div class="bg-primary h-6"></div><div class="bg-primary h-6"></div>
+                <div class="bg-primary h-6"></div><div class="bg-primary h-6"></div><div class="bg-primary h-6"></div><div class="bg-primary h-6"></div>
+              </div>
+              <div class="absolute inset-0 flex flex-col items-center justify-center">
+                <span class="material-symbols-outlined text-5xl text-secondary-container animate-pulse">cell_tower</span>
+                <div class="mt-2 font-mono-labels text-xs text-primary font-bold">NŒUD_04 CONNECTÉ</div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Monospace Status Text -->
+          <div class="mt-6 flex flex-col items-center gap-1">
+            <div class="font-mono-labels text-xs text-primary font-bold tracking-widest animate-pulse">
+              TRANSMISSION DES DONNÉES AU NŒUD_04...
+            </div>
+            <div class="font-mono-labels text-[10px] text-gray-500 flex gap-4">
+              <span>HEX_DUMP: <span id="processing-hexdump">0x4F 0x50 0x45 0x52</span></span>
+              <span class="text-secondary font-bold">EN COURS...</span>
+              <span>CONTROLE_CRC: VALIDE</span>
+            </div>
+          </div>
+          
+          <!-- Progress Bar Container -->
+          <div class="mt-6 w-full max-w-xl">
+            <div class="flex justify-between font-mono-labels text-xs mb-1">
+              <span>POIDS_PAYLOAD: 844KB</span>
+              <span id="print-progress-percent">0%</span>
+            </div>
+            <div class="h-8 w-full border-2 border-primary bg-white p-1 flex gap-1" id="print-progress-bar-container">
+              <!-- Progress Steps filled via JS -->
+            </div>
+          </div>
+        </div>
+        
+        <!-- Footer Log / Terminal -->
+        <div class="h-32 border-2 border-primary bg-primary text-green-500 p-4 font-mono-labels text-[10px] overflow-hidden shrink-0">
+          <div class="flex justify-between border-b border-gray-700 pb-1 mb-2 text-white">
+            <span class="font-bold">SYSTEM_LOG_v1.0.4</span>
+            <span>[HORODATAGE: <span id="processing-timestamp">1698312000</span>]</span>
+          </div>
+          <div id="print-terminal-logs" class="space-y-1 overflow-y-auto h-20 scrollbar-hide text-left">
+            <div>&gt;&gt; INITIALISATION DE LA SÉQUENCE DE CONNEXION AVEC PRINT_CONTROLLER...</div>
+            <div class="text-white">&gt;&gt; AUTHENTIFICATION OPÉRATEUR_01... SUCCÈS.</div>
+            <div>&gt;&gt; CHARGEMENT DES BLOCS DE CONFIGURATION (ID: #FB290)...</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 3. SUCCESS STATE -->
+      <div id="print-state-success" class="hidden max-w-2xl mx-auto w-full bg-white border-2 border-primary hard-shadow p-6 md:p-12 relative overflow-hidden">
+        <!-- Technical Corner Marks -->
+        <div class="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-secondary"></div>
+        <div class="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-secondary"></div>
+        
+        <div class="flex flex-col items-center text-center space-y-6">
+          <!-- Large Checkmark Icon -->
+          <div class="w-24 h-24 border-4 border-primary rounded-full flex items-center justify-center bg-secondary mb-2">
+            <span class="material-symbols-outlined text-5xl text-white font-bold">check</span>
+          </div>
+          <h1 class="text-3xl md:text-4xl font-black text-primary leading-none tracking-tighter">IMPRESSION_RÉUSSIE</h1>
+          <p class="font-mono-labels text-xs bg-primary text-white px-4 py-1 uppercase inline-block">Protocole de transmission terminé avec succès</p>
+          
+          <!-- Metadata Grid -->
+          <div class="grid grid-cols-1 md:grid-cols-3 w-full border-2 border-primary divide-y-2 md:divide-y-0 md:divide-x-2 divide-primary">
+            <div class="p-4 flex flex-col items-start text-left">
+              <span class="font-mono-labels text-[10px] text-gray-500 mb-1">JOB_ID</span>
+              <span class="text-lg font-bold text-primary" id="success-job-id">#SC-9822</span>
+            </div>
+            <div class="p-4 flex flex-col items-start bg-secondary/5 text-left">
+              <span class="font-mono-labels text-[10px] text-secondary mb-1">STATUT</span>
+              <span class="text-lg font-bold text-secondary">TERMINE</span>
+            </div>
+            <div class="p-4 flex flex-col items-start text-left">
+              <span class="font-mono-labels text-[10px] text-gray-500 mb-1">HORODATAGE</span>
+              <span class="font-mono-labels text-xs text-primary font-bold" id="success-timestamp">2026-05-28 14:45:01</span>
+            </div>
+          </div>
+          
+          <!-- Image Preview Card -->
+          <div class="w-full border-2 border-primary p-1 bg-surface-low">
+            <div class="relative group">
+              <img alt="Visualisation succès impression" class="w-full h-40 object-cover grayscale brightness-110" src="https://lh3.googleusercontent.com/aida-public/AB6AXuByHbYwsbi5wMQjdAhB8CgxwmDkNSCY7y2BZ0kiGPtioCAf0G3G7cAwKFTZKKbk_otsVDtUYEkurJaSh3G7N8hijBj5pPKp752glEV91fawB-ytknzJDiDZY0mH4o6Yzar-7oh1npDasbnlBWzWQEeQYJ6i5VlQ_yxo1FMrVOxoMRc91Sex4KaCxCoGmypUao7K_DuHrVAY8hF3wsV4UXIpuma1rBRe7d2DFLK_OCY5QZVR7IYXsaqFXZNnADYtlQi_m5RHIgE3v6ds"/>
+              <div class="absolute inset-0 border-2 border-primary mix-blend-overlay"></div>
+              <div class="absolute top-2 left-2 bg-primary text-white px-2 py-1 font-mono-labels text-[9px]">APERÇU_MATÉRIEL</div>
+            </div>
+          </div>
+          
+          <!-- Action Buttons -->
+          <div class="flex flex-col md:flex-row gap-4 w-full">
+            <button class="flex-1 bg-primary text-white border-2 border-primary py-4 font-bold text-xs uppercase hard-shadow hover:bg-secondary transition-all flex items-center justify-center gap-2" onclick="switchView('live')">
+              <span class="material-symbols-outlined">barcode_scanner</span>
+              Retour au Scanner
+            </button>
+            <button class="flex-1 bg-white text-primary border-2 border-primary py-4 font-bold text-xs uppercase hover:bg-primary hover:text-white transition-all flex items-center justify-center gap-2" onclick="retryPrintSetup()">
+              <span class="material-symbols-outlined">print_add</span>
+              Imprimer à nouveau
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 4. ERROR STATE -->
+      <div id="print-state-error" class="hidden max-w-4xl mx-auto w-full grid grid-cols-1 md:grid-cols-12 gap-0 border-2 border-primary bg-white hard-shadow">
+        <!-- Error Header Sidebar (Vertical Label) -->
+        <div class="md:col-span-1 bg-error border-b-2 md:border-b-0 md:border-r-2 border-primary flex items-center justify-center py-4 md:py-0">
+          <div class="md:-rotate-90 font-mono-labels text-white font-black tracking-widest whitespace-nowrap text-lg">
+            PANNE_CRITIQUE
+          </div>
+        </div>
+        <!-- Main Error Body -->
+        <div class="md:col-span-7 p-6 flex flex-col gap-6 text-left">
+          <div class="flex items-center gap-4">
+            <span class="material-symbols-outlined text-6xl text-error" style="font-variation-settings: 'FILL' 1;">warning</span>
+            <div>
+              <h1 class="text-xl md:text-2xl font-black uppercase mb-1">IMPRIMANTE_HORS_LIGNE</h1>
+              <p class="font-mono-labels text-xs text-error font-bold bg-error/10 px-2 py-0.5 inline-block">CODE_ERREUR: 0x42 - IMPRIMANTE_INACCESSIBLE</p>
+            </div>
+          </div>
+          <div class="space-y-3 text-left">
+            <p class="text-sm text-gray-700">L'unité d'impression centrale au <strong>NŒUD_04</strong> ne répond plus aux signaux périodiques (heartbeats). Le handshake de connexion a expiré après 3000ms.</p>
+            <div class="grid grid-cols-2 gap-4 text-left">
+              <div class="border-2 border-primary p-2 bg-surface-low">
+                <div class="font-mono-labels text-[9px] opacity-60">IDENTIFIANT_MATÉRIEL</div>
+                <div class="font-mono-labels font-bold text-xs">PRN-99X-ZETA</div>
+              </div>
+              <div class="border-2 border-primary p-2 bg-surface-low text-left">
+                <div class="font-mono-labels text-[9px] opacity-60">DERNIER_SONDAGE</div>
+                <div class="font-mono-labels font-bold text-xs" id="error-last-poll">14:02:44.009</div>
+              </div>
+            </div>
+          </div>
+          <div class="flex gap-4 mt-auto pt-4">
+            <button class="bg-primary text-white px-4 py-3 font-mono-labels text-xs border-2 border-primary hard-shadow uppercase flex items-center gap-2 hover:bg-error transition-all" onclick="triggerActualPrintJob()">
+              <span class="material-symbols-outlined text-[16px]">refresh</span>
+              Réessayer la connexion
+            </button>
+            <button class="bg-white text-primary px-4 py-3 font-mono-labels text-xs border-2 border-primary hard-shadow uppercase hover:bg-black hover:text-white transition-all" onclick="runDiagnostics()">
+              Exécuter les diagnostics
+            </button>
+          </div>
+        </div>
+        <!-- Technical Log Sidebar -->
+        <div class="md:col-span-4 flex flex-col bg-surface-low border-t-2 md:border-t-0 md:border-l-2 border-primary">
+          <div class="p-2 border-b-2 border-primary bg-primary text-white font-mono-labels text-[9px] uppercase tracking-widest text-left">
+            JOURNAL_DE_DÉPANNAGE
+          </div>
+          <div class="flex-grow p-3 font-mono-labels text-[10px] leading-tight bg-black text-green-500 min-h-[150px] md:min-h-0 text-left" id="error-troubleshooting-log">
+            <div class="opacity-50">[09:41:22] Initializing communication sequence...</div>
+            <div class="opacity-50">[09:41:22] TCP/IP Handshake with 192.168.1.104</div>
+            <div class="opacity-50">[09:41:23] Socket established. Port 9100.</div>
+            <div class="text-white">[09:41:25] Sending PRINT_READY signal...</div>
+            <div class="text-error font-bold">[09:41:28] ! TIMEOUT: No response from peripheral.</div>
+            <div class="opacity-50">[09:41:29] Attempting retry 1/3...</div>
+            <div class="text-error font-bold">[09:41:32] ! TIMEOUT: Retry failed.</div>
+          </div>
+        </div>
+      </div>
+    </section>
   </main>
 
   <!-- Modals Système (Ex: Confirmation) -->
@@ -602,19 +902,23 @@
 
   <!-- Barre de navigation inférieure pour Mobile -->
   <nav class="fixed bottom-0 left-0 right-0 z-50 bg-background border-t-2 border-primary h-16 flex md:hidden justify-around items-center bg-white shadow-[0_-4px_0_0_rgba(0,0,0,0.05)]">
-    <button id="mobile-btn-live" class="flex flex-col items-center gap-1 text-secondary font-bold font-mono-labels text-[9px] uppercase tracking-wider py-1 w-1/4" onclick="switchView('live')">
+    <button id="mobile-btn-live" class="flex flex-col items-center gap-1 text-secondary font-bold font-mono-labels text-[9px] uppercase tracking-wider py-1 w-1/5" onclick="switchView('live')">
       <span class="material-symbols-outlined text-[20px]">barcode_scanner</span>
       <span>Scanner</span>
     </button>
-    <button id="mobile-btn-history" class="flex flex-col items-center gap-1 text-primary font-medium font-mono-labels text-[9px] uppercase tracking-wider py-1 w-1/4" onclick="switchView('history')">
+    <button id="mobile-btn-history" class="flex flex-col items-center gap-1 text-primary font-medium font-mono-labels text-[9px] uppercase tracking-wider py-1 w-1/5" onclick="switchView('history')">
       <span class="material-symbols-outlined text-[20px]">history_edu</span>
       <span>Historique</span>
     </button>
-    <button id="mobile-btn-marketing" class="flex flex-col items-center gap-1 text-primary font-medium font-mono-labels text-[9px] uppercase tracking-wider py-1 w-1/4" onclick="switchView('marketing')">
+    <button id="mobile-btn-print" class="flex flex-col items-center gap-1 text-primary font-medium font-mono-labels text-[9px] uppercase tracking-wider py-1 w-1/5" onclick="switchView('print')">
+      <span class="material-symbols-outlined text-[20px]">print</span>
+      <span>Impr.</span>
+    </button>
+    <button id="mobile-btn-marketing" class="flex flex-col items-center gap-1 text-primary font-medium font-mono-labels text-[9px] uppercase tracking-wider py-1 w-1/5" onclick="switchView('marketing')">
       <span class="material-symbols-outlined text-[20px]">description</span>
       <span>Kit</span>
     </button>
-    <button id="mobile-btn-config" class="flex flex-col items-center gap-1 text-primary font-medium font-mono-labels text-[9px] uppercase tracking-wider py-1 w-1/4" onclick="switchView('config')">
+    <button id="mobile-btn-config" class="flex flex-col items-center gap-1 text-primary font-medium font-mono-labels text-[9px] uppercase tracking-wider py-1 w-1/5" onclick="switchView('config')">
       <span class="material-symbols-outlined text-[20px]">settings_input_component</span>
       <span>Config</span>
     </button>
