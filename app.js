@@ -409,6 +409,58 @@ function submitManualBarcode() {
   }, 400);
 }
 
+// Scanneur : Sélection d'un article aléatoire dans la base de données
+async function selectRandomDatabaseProduct() {
+  const statusText = document.getElementById('scan-status-text');
+  if (statusText) statusText.innerText = "STATUS: RANDOM_QUERY";
+  showToast("INTERROGATION DE LA BASE DE DONNÉES FLO...", "info");
+
+  try {
+    // 1. Demander le décompte estimé des lignes de base_flo
+    const { count, error: countError } = await supabaseClient
+      .from('base_flo')
+      .select('*', { count: 'estimated', head: true });
+      
+    if (countError) throw countError;
+    
+    const totalRows = (count && count > 0) ? count : 15322;
+    const randomOffset = Math.floor(Math.random() * totalRows);
+    
+    console.log(`Random selection: Offset ${randomOffset} out of estimated ${totalRows}`);
+
+    // 2. Requêter 1 ligne avec ce décalage
+    const { data, error } = await supabaseClient
+      .from('base_flo')
+      .select('*')
+      .range(randomOffset, randomOffset)
+      .limit(1);
+      
+    if (error) throw error;
+    
+    if (data && data.length > 0) {
+      const row = data[0];
+      const barcode = String(row['Code-barres article'] || row['Ref']);
+      console.log("Random article selected barcode:", barcode, "Name:", row['Nom de l\'article']);
+      
+      // Lancer le traitement standard
+      processScannedCode(barcode);
+    } else {
+      throw new Error("No data returned for offset " + randomOffset);
+    }
+  } catch (err) {
+    console.warn("Failed to retrieve random product from Supabase, falling back to local catalog:", err);
+    if (appState.catalog && appState.catalog.length > 0) {
+      const randomIndex = Math.floor(Math.random() * appState.catalog.length);
+      const fallbackItem = appState.catalog[randomIndex];
+      showToast(`PRODUIT ALÉATOIRE (LOCAL REPLI) : ${fallbackItem.name}`, "info");
+      processScannedCode(fallbackItem.barcode || fallbackItem.sku);
+    } else {
+      showToast("ERREUR SYSTÈME : IMPOSSIBLE DE CHOISIR UN ARTICLE", "error");
+      if (statusText) statusText.innerText = "STATUS: ERROR";
+    }
+  }
+}
+
 // Traitement du Code Détecté (Scanner ou Manuel)
 async function processScannedCode(code) {
   if (!code) return;

@@ -227,10 +227,13 @@
       
       <!-- Boutons d'Action & Formulaire -->
       <div class="mt-8 flex flex-col gap-4 w-full max-w-md">
-        <!-- Contrôles Webcam -->
-        <div class="flex gap-4">
-          <button id="btn-toggle-camera" class="w-full bg-primary text-on-primary border-2 border-primary py-3 px-4 font-bold text-xs uppercase tracking-wider hover:bg-secondary transition-all active:translate-x-0.5 active:translate-y-0.5 hard-shadow" onclick="toggleCameraInput()">
+        <!-- Contrôles Webcam & Aléatoire -->
+        <div class="flex flex-col sm:flex-row gap-4">
+          <button id="btn-toggle-camera" class="flex-1 bg-primary text-on-primary border-2 border-primary py-3 px-4 font-bold text-xs uppercase tracking-wider hover:bg-secondary transition-all active:translate-x-0.5 active:translate-y-0.5 hard-shadow" onclick="toggleCameraInput()">
             Activer la Webcam
+          </button>
+          <button id="btn-random-product" class="flex-1 bg-white text-primary border-2 border-primary py-3 px-4 font-bold text-xs uppercase tracking-wider hover:bg-secondary hover:text-white transition-all active:translate-x-0.5 active:translate-y-0.5 hard-shadow" onclick="selectRandomDatabaseProduct()">
+            Article Aléatoire
           </button>
         </div>
         
