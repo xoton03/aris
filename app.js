@@ -125,7 +125,26 @@ let appState = {
   selectedProduct: null,
   isScanning: false,
   webcamActive: false,
-  html5QrCodeInstance: null
+  html5QrCodeInstance: null,
+  isSyncingOfflineDB: false,
+  printQueue: [
+    { id: "JOB-#8892", name: "KINETIX 1M PAGOL MESH M 1FX", qty: 500, price: "450 da", status: "PRINTING...", progress: 35, printer: "Terminal_04", time: "14:02:44" },
+    { id: "JOB-#8893", name: "FLOGART 2W T-Der Taban-W 2PR", qty: 12, price: "5700 da", status: "QUEUED", progress: 0, printer: "Terminal_04", time: "14:05:11" },
+    { id: "JOB-#8894", name: "FLOGART 2W T-Kslk Taban-W 2PR", qty: 1, price: "750 da", status: "QUEUED", progress: 0, printer: "Terminal_04", time: "14:10:05" }
+  ],
+  inkLevels: {
+    cyan: 85,
+    magenta: 42,
+    yellow: 12,
+    black: 90
+  },
+  isTerminalPaused: false,
+  terminalIntervalId: null,
+  terminalLogs: [
+    "[14:02:44] SYS_ACK: Handshake complete with WAREHOUSE_SEC_7",
+    "[14:02:45] DATA_RX: Connection online. Port 9100.",
+    "[14:02:46] SYSTEM_STATUS: REMOTE_READY"
+  ]
 };
 
 // État Global de l'Impression (Stitch)
@@ -143,6 +162,17 @@ window.addEventListener('DOMContentLoaded', () => {
   initData();
   initFlickerEffect();
   switchView('live');
+  updateOfflineDbUI();
+  populateTictageProductSelect();
+  updatePrintStationUI();
+  addTerminalLog("SYSTEM_STATUS: REMOTE_READY");
+  addTerminalLog("PRINTERS_ONLINE: Local/Remote modules loaded.");
+  
+  // Démarrer automatiquement le processeur de file s'il y a des travaux en cours/en attente
+  const hasJobs = appState.printQueue.some(j => j.status === 'QUEUED' || j.status === 'PRINTING...');
+  if (hasJobs) {
+    startTerminalQueueProcessor();
+  }
 });
 
 // Initialise les données à partir de localStorage
@@ -261,7 +291,7 @@ function switchView(viewName) {
   appState.activeView = viewName;
 
   // Cacher toutes les sections
-  const sections = ['view-live', 'view-history', 'view-detail', 'view-marketing', 'view-config', 'view-print'];
+  const sections = ['view-live', 'view-history', 'view-detail', 'view-marketing', 'view-config', 'view-print', 'view-print-station', 'view-tictage-manuel'];
   sections.forEach(id => {
     const el = document.getElementById(id);
     if (el) el.classList.add('hidden');
@@ -272,7 +302,7 @@ function switchView(viewName) {
   if (activeEl) activeEl.classList.remove('hidden');
 
   // Mettre à jour les styles des boutons de navigation (En-tête)
-  const navBtns = ['live', 'history', 'print', 'marketing'];
+  const navBtns = ['live', 'history', 'print', 'marketing', 'print-station', 'tictage-manuel'];
   navBtns.forEach(name => {
     const btn = document.getElementById(`nav-btn-${name}`);
     if (btn) {
@@ -287,7 +317,7 @@ function switchView(viewName) {
   });
 
   // Mettre à jour les styles des boutons de navigation (Barre latérale)
-  const sideBtns = ['live', 'history', 'print', 'marketing', 'config'];
+  const sideBtns = ['live', 'history', 'print-station', 'tictage-manuel', 'print', 'marketing', 'config'];
   sideBtns.forEach(name => {
     const btn = document.getElementById(`side-btn-${name}`);
     if (btn) {
@@ -302,7 +332,7 @@ function switchView(viewName) {
   });
 
   // Mettre à jour les styles des boutons de navigation (Barre mobile inférieure)
-  const mobileBtns = ['live', 'history', 'print', 'marketing', 'config'];
+  const mobileBtns = ['live', 'history', 'print-station', 'tictage-manuel', 'config'];
   mobileBtns.forEach(name => {
     const btn = document.getElementById(`mobile-btn-${name}`);
     if (btn) {
@@ -319,6 +349,10 @@ function switchView(viewName) {
   // Rafraîchir les données de la vue concernée
   if (viewName === 'history') {
     updateHistoryView();
+  } else if (viewName === 'tictage-manuel') {
+    populateTictageProductSelect();
+  } else if (viewName === 'print-station') {
+    updatePrintStationUI();
   }
 
   window.scrollTo(0, 0);
@@ -498,87 +532,120 @@ async function processScannedCode(code) {
   if (statusText) statusText.innerText = "STATUS: QUERYING_DB...";
 
   try {
-    // 1. Essayer de trouver dans la base Supabase en temps réel
-    // On convertit le code en nombre pour le comparer à Code-barres article (bigint)
-    const numericCode = parseInt(code, 10);
-    
-    let query = supabaseClient
-      .from('base_flo')
-      .select('*');
-      
-    if (!isNaN(numericCode)) {
-      query = query.or(`"Code-barres article".eq.${numericCode},Ref.eq.${code}`);
-    } else {
-      query = query.eq('Ref', code);
-    }
-    
-    const { data, error } = await query.limit(1);
-    
-    if (error) throw error;
-    
     let product = null;
-    
-    if (data && data.length > 0) {
-      const row = data[0];
-      product = {
-        barcode: String(row['Code-barres article']),
-        sku: row['Ref'] || String(row['Code-barres article']),
-        name: row['Nom de l\'article'] || 'Produit Sans Nom',
-        price: row['Prix'] || '0 da',
-        price_discount: row['Prix solde'] || null,
-        brand: row['Brand'] || 'INCONNU',
-        size: row['Taille'] || 'STD',
-        color: row['Couleur'] || 'N/A',
-        gender: row['Genre de l\'article'] || 'UNISEX',
-        group: row['Groupe de l\'article'] || 'N/A',
-        type: row['Type de l\'article'] || 'N/A',
-        market: row['March'] || 'N/A',
-        image: getProductImage({
-          group: row['Groupe de l\'article'],
-          name: row['Nom de l\'article']
-        })
-      };
-      showToast(`PRODUIT RECONNU : ${product.name}`, "success");
-    } else {
-      // 2. Si pas trouvé dans Supabase, chercher dans le catalogue local en mémoire
+
+    // 1. Tenter d'abord la recherche dans la base locale IndexedDB
+    try {
+      product = await getProductFromOfflineDB(code);
+      if (product) {
+        showToast(`PRODUIT RECONNU (BASE LOCALE) : ${product.name}`, "success");
+      }
+    } catch (dbErr) {
+      console.warn("IndexedDB lookup failed, falling back to network/catalog:", dbErr);
+    }
+
+    // 2. Si non trouvé localement, interroger Supabase en temps réel
+    if (!product) {
+      const numericCode = parseInt(code, 10);
+      let query = supabaseClient.from('base_flo').select('*');
+      
+      if (!isNaN(numericCode)) {
+        query = query.or(`"Code-barres article".eq.${numericCode},Ref.eq.${code}`);
+      } else {
+        query = query.eq('Ref', code);
+      }
+      
+      const { data, error } = await query.limit(1);
+      
+      if (error) throw error;
+      
+      if (data && data.length > 0) {
+        const row = data[0];
+        product = {
+          barcode: String(row['Code-barres article']),
+          sku: row['Ref'] || String(row['Code-barres article']),
+          name: row['Nom de l\'article'] || 'Produit Sans Nom',
+          price: row['Prix'] || '0 da',
+          price_discount: row['Prix solde'] || null,
+          brand: row['Brand'] || 'INCONNU',
+          size: row['Taille'] || 'STD',
+          color: row['Couleur'] || 'N/A',
+          gender: row['Genre de l\'article'] || 'UNISEX',
+          group: row['Groupe de l\'article'] || 'N/A',
+          type: row['Type de l\'article'] || 'N/A',
+          market: row['March'] || 'N/A',
+          image: getProductImage({
+            group: row['Groupe de l\'article'],
+            name: row['Nom de l\'article']
+          })
+        };
+        showToast(`PRODUIT RECONNU (CLOUD) : ${product.name}`, "success");
+      }
+    }
+
+    // 3. Repli de dernier ressort : catalogue mémoire
+    if (!product) {
       const localProduct = appState.catalog.find(p => p.sku.toUpperCase() === code.toUpperCase() || p.barcode === code);
       if (localProduct) {
         product = localProduct;
-        showToast(`PRODUIT RECONNU (LOCAL) : ${product.name}`, "success");
+        showToast(`PRODUIT RECONNU (LOCAL EN MEMOIRE) : ${product.name}`, "success");
       }
     }
-    
+
     if (!product) {
-      showToast(`CODE INCONNU DANS LA BASE FLO : ${code}`, "error");
+      showToast(`CODE INCONNU : ${code}`, "error");
       if (statusText) statusText.innerText = "STATUS: CODE_UNKNOWN";
       return;
     }
-    
+
     // Créer l'entrée correspondante dans le journal d'historique de scan
     const sequenceNum = Math.floor(1000 + Math.random() * 9000);
     const scanId = `SEQ-${sequenceNum}-A`;
     const now = new Date();
     const utcTimestamp = now.toISOString().replace('T', ' ').substring(0, 19);
-    
+
     const newScanEntry = {
       id: scanId,
       timestamp: utcTimestamp,
       ...product
     };
-    
+
     // Enregistrer le scan dans l'historique local
     appState.history.unshift(newScanEntry);
     localStorage.setItem('scancore_history', JSON.stringify(appState.history));
-    
+
     // Afficher les détails et rediriger vers l'écran Bento
     showProductDetails(newScanEntry);
     switchView('detail');
-    
+
     if (statusText) statusText.innerText = "STATUS: CODE_DECODED";
   } catch (err) {
     console.error("Error processing scan code:", err);
-    showToast("ERREUR LORS DU TRAITEMENT : CONNEXION DB PERDUE", "error");
-    if (statusText) statusText.innerText = "STATUS: ERROR";
+    // En cas de panne de connexion (hors ligne)
+    // Tenter quand même de chercher dans le catalogue mémoire s'il n'a pas été trouvé ou s'il y a eu un crash réseau
+    const localProduct = appState.catalog.find(p => p.sku.toUpperCase() === code.toUpperCase() || p.barcode === code);
+    if (localProduct) {
+      const sequenceNum = Math.floor(1000 + Math.random() * 9000);
+      const scanId = `SEQ-${sequenceNum}-A`;
+      const now = new Date();
+      const utcTimestamp = now.toISOString().replace('T', ' ').substring(0, 19);
+
+      const newScanEntry = {
+        id: scanId,
+        timestamp: utcTimestamp,
+        ...localProduct
+      };
+
+      appState.history.unshift(newScanEntry);
+      localStorage.setItem('scancore_history', JSON.stringify(appState.history));
+      showProductDetails(newScanEntry);
+      switchView('detail');
+      showToast(`PRODUIT HORS LIGNE TROUVÉ EN MÉMOIRE`, "success");
+      if (statusText) statusText.innerText = "STATUS: CODE_DECODED";
+    } else {
+      showToast("ERREUR DE TRAITEMENT : CONNEXION DB PERDUE & CODE INCONNU", "error");
+      if (statusText) statusText.innerText = "STATUS: ERROR";
+    }
   }
 }
 
@@ -1389,3 +1456,805 @@ function showToast(message, type = 'info') {
     }, 300);
   }, 3500);
 }
+
+/* ==========================================================================
+   OFFLINE STORAGE & DATABASE FUNCTIONS (INDEXEDDB)
+   ========================================================================== */
+
+const DB_NAME = 'ScanCoreOfflineDB';
+const DB_VERSION = 1;
+const STORE_NAME = 'products';
+
+function openOfflineDB() {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open(DB_NAME, DB_VERSION);
+    request.onerror = () => reject(request.error);
+    request.onsuccess = () => resolve(request.result);
+    request.onupgradeneeded = (event) => {
+      const db = event.target.result;
+      if (!db.objectStoreNames.contains(STORE_NAME)) {
+        const store = db.createObjectStore(STORE_NAME, { keyPath: 'barcode' });
+        store.createIndex('sku', 'sku', { unique: false });
+      }
+    };
+  });
+}
+
+function saveProductsToOfflineDB(products) {
+  return openOfflineDB().then(db => {
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction(STORE_NAME, 'readwrite');
+      const store = transaction.objectStore(STORE_NAME);
+      
+      products.forEach(p => {
+        store.put(p);
+      });
+      
+      transaction.oncomplete = () => resolve();
+      transaction.onerror = () => reject(transaction.error);
+    });
+  });
+}
+
+function getProductFromOfflineDB(code) {
+  return openOfflineDB().then(db => {
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction(STORE_NAME, 'readonly');
+      const store = transaction.objectStore(STORE_NAME);
+      
+      // Try barcode lookup
+      const barcodeRequest = store.get(code);
+      barcodeRequest.onsuccess = () => {
+        if (barcodeRequest.result) {
+          resolve(barcodeRequest.result);
+        } else {
+          // Try SKU lookup via index
+          const skuIndex = store.index('sku');
+          const skuRequest = skuIndex.get(code);
+          skuRequest.onsuccess = () => {
+            resolve(skuRequest.result || null);
+          };
+          skuRequest.onerror = () => reject(skuRequest.error);
+        }
+      };
+      barcodeRequest.onerror = () => reject(barcodeRequest.error);
+    });
+  });
+}
+
+function clearOfflineDB() {
+  return openOfflineDB().then(db => {
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction(STORE_NAME, 'readwrite');
+      const store = transaction.objectStore(STORE_NAME);
+      const request = store.clear();
+      request.onsuccess = () => resolve();
+      request.onerror = () => reject(request.error);
+    });
+  });
+}
+
+function getOfflineDBCount() {
+  return openOfflineDB().then(db => {
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction(STORE_NAME, 'readonly');
+      const store = transaction.objectStore(STORE_NAME);
+      const countRequest = store.count();
+      countRequest.onsuccess = () => resolve(countRequest.result);
+      countRequest.onerror = () => reject(countRequest.error);
+    });
+  });
+}
+
+async function updateOfflineDbUI() {
+  const syncStatusEl = document.getElementById('offline-sync-status');
+  const syncBtn = document.getElementById('btn-sync-offline-db');
+  const dbIcon = document.getElementById('header-db-icon');
+  const dbStatusBtn = document.getElementById('header-db-status-btn');
+  const dbTitleEl = document.getElementById('db-load-title');
+  const dbBarEl = document.getElementById('db-load-bar');
+  const dbWarnEl = document.getElementById('db-load-warn');
+  
+  try {
+    const count = await getOfflineDBCount();
+    const syncDate = localStorage.getItem('scancore_offline_sync_date') || 'Jamais';
+    
+    if (count > 0) {
+      if (syncStatusEl) syncStatusEl.innerHTML = `Base locale: Prête (${count} art.)<br><span class="text-[8px] opacity-75">Synchro: ${syncDate}</span>`;
+      if (dbIcon) dbIcon.classList.add('text-secondary');
+      if (dbStatusBtn) dbStatusBtn.title = `Base Locale : Prête (${count} articles - Synchro: ${syncDate})`;
+      
+      // Update double progress bar when not syncing
+      if (!appState.isSyncingOfflineDB) {
+        if (dbTitleEl) dbTitleEl.innerText = "Base de données locale";
+        if (dbBarEl) {
+          dbBarEl.style.width = "100%";
+          dbBarEl.className = "bg-secondary h-full transition-all duration-300"; // Orange Accent
+        }
+        if (dbWarnEl) dbWarnEl.classList.add('hidden');
+      }
+    } else {
+      if (syncStatusEl) syncStatusEl.innerText = "Base locale: Indisponible";
+      if (dbIcon) dbIcon.classList.remove('text-secondary');
+      if (dbStatusBtn) dbStatusBtn.title = "Base Locale : Indisponible (Utilisation Cloud requis)";
+      
+      // Update double progress bar when not syncing
+      if (!appState.isSyncingOfflineDB) {
+        if (dbTitleEl) dbTitleEl.innerText = "Charge de base de données (Historique)";
+        const loadPercentage = Math.min(appState.history.length * 5, 100);
+        if (dbBarEl) {
+          dbBarEl.style.width = `${loadPercentage}%`;
+          dbBarEl.className = "bg-secondary h-full transition-all duration-300";
+        }
+        if (dbWarnEl) {
+          if (loadPercentage > 80) dbWarnEl.classList.remove('hidden');
+          else dbWarnEl.classList.add('hidden');
+        }
+      }
+    }
+  } catch (err) {
+    console.error("Failed to update offline DB UI:", err);
+  }
+}
+
+async function downloadOfflineDatabase() {
+  const syncBtn = document.getElementById('btn-sync-offline-db');
+  const clearBtn = document.getElementById('btn-clear-offline-db');
+  const dbBarEl = document.getElementById('db-load-bar');
+  const dbTitleEl = document.getElementById('db-load-title');
+  const syncStatusEl = document.getElementById('offline-sync-status');
+  
+  if (appState.isSyncingOfflineDB) return;
+  
+  appState.isSyncingOfflineDB = true;
+  if (syncBtn) syncBtn.disabled = true;
+  if (clearBtn) clearBtn.disabled = true;
+  
+  if (dbTitleEl) dbTitleEl.innerText = "TÉLÉCHARGEMENT DE LA BASE...";
+  if (dbBarEl) dbBarEl.style.width = "0%";
+  if (syncStatusEl) syncStatusEl.innerText = "Connexion à Supabase...";
+  
+  showToast("DÉBUT DE LA SYNCHRONISATION HORS LIGNE", "info");
+  
+  try {
+    const { count, error: countError } = await supabaseClient
+      .from('base_flo')
+      .select('*', { count: 'exact', head: true });
+      
+    if (countError) throw countError;
+    
+    const totalRows = count || 15322;
+    let fetchedRows = 0;
+    const batchSize = 1000;
+    
+    // Clear existing DB first
+    await clearOfflineDB();
+    
+    while (fetchedRows < totalRows) {
+      const progressPercent = Math.floor((fetchedRows / totalRows) * 100);
+      if (dbBarEl) dbBarEl.style.width = `${progressPercent}%`;
+      if (syncStatusEl) syncStatusEl.innerText = `Téléchargement : ${fetchedRows} / ${totalRows}...`;
+      
+      const { data, error } = await supabaseClient
+        .from('base_flo')
+        .select('*')
+        .range(fetchedRows, fetchedRows + batchSize - 1);
+        
+      if (error) throw error;
+      if (!data || data.length === 0) break;
+      
+      const mapped = data.map(row => ({
+        barcode: String(row['Code-barres article'] || row['Ref'] || ''),
+        sku: row['Ref'] || String(row['Code-barres article'] || ''),
+        name: row['Nom de l\'article'] || 'Produit Sans Nom',
+        price: row['Prix'] || '0 da',
+        price_discount: row['Prix solde'] || null,
+        brand: row['Brand'] || 'INCONNU',
+        size: row['Taille'] || 'STD',
+        color: row['Couleur'] || 'N/A',
+        gender: row['Genre de l\'article'] || 'UNISEX',
+        group: row['Groupe de l\'article'] || 'N/A',
+        type: row['Type de l\'article'] || 'N/A',
+        market: row['March'] || 'N/A',
+        image: getProductImage({
+          group: row['Groupe de l\'article'],
+          name: row['Nom de l\'article']
+        })
+      })).filter(p => p.barcode || p.sku);
+      
+      await saveProductsToOfflineDB(mapped);
+      fetchedRows += data.length;
+    }
+    
+    if (dbBarEl) dbBarEl.style.width = "100%";
+    const syncDate = new Date().toLocaleString('fr-FR');
+    localStorage.setItem('scancore_offline_sync_date', syncDate);
+    
+    showToast("SYNCHRONISATION LOCALE REUSSIE !", "success");
+  } catch (err) {
+    console.error("Offline sync error:", err);
+    showToast("ECHEC DE LA SYNCHRONISATION HORS LIGNE", "error");
+  } finally {
+    appState.isSyncingOfflineDB = false;
+    if (syncBtn) syncBtn.disabled = false;
+    if (clearBtn) clearBtn.disabled = false;
+    await updateOfflineDbUI();
+  }
+}
+
+async function clearOfflineDatabase() {
+  if (appState.isSyncingOfflineDB) return;
+  if (!confirm("Voulez-vous vraiment vider la base de données locale ?")) return;
+  
+  try {
+    await clearOfflineDB();
+    localStorage.removeItem('scancore_offline_sync_date');
+    showToast("BASE LOCALE SUPPRIMÉE", "error");
+    await updateOfflineDbUI();
+  } catch (err) {
+    console.error("Clear error:", err);
+    showToast("ECHEC DE LA SUPPRESSION", "error");
+  }
+}
+
+/* ==========================================================================
+   STATION D'IMPRESSION (PRINT STATION LOGIC)
+   ========================================================================== */
+
+function addTerminalLog(msg) {
+  const timeStr = new Date().toTimeString().split(' ')[0];
+  appState.terminalLogs.push(`[${timeStr}] ${msg}`);
+  
+  if (appState.terminalLogs.length > 50) {
+    appState.terminalLogs.shift();
+  }
+  
+  const logContainer = document.getElementById('terminal-sys-log');
+  if (logContainer) {
+    logContainer.innerHTML = appState.terminalLogs.map(log => `<div>${log}</div>`).join('');
+    logContainer.scrollTop = logContainer.scrollHeight;
+  }
+}
+
+function updatePrintStationUI() {
+  // Update Ink Levels
+  const inks = ['cyan', 'magenta', 'yellow', 'black'];
+  inks.forEach(color => {
+    const textEl = document.getElementById(`ink-${color}-text`);
+    const barEl = document.getElementById(`ink-${color}-bar`);
+    const val = appState.inkLevels[color].toFixed(1);
+    if (textEl) textEl.innerText = `${Math.round(val)}%`;
+    if (barEl) {
+      barEl.style.width = `${val}%`;
+      // Warn yellow if low
+      if (color === 'yellow') {
+        const yellowLabel = document.getElementById('ink-yellow-label');
+        if (val < 15) {
+          if (yellowLabel) yellowLabel.className = "flex justify-between mb-1 text-secondary font-bold animate-pulse";
+          barEl.className = "h-full bg-secondary animate-pulse";
+        } else {
+          if (yellowLabel) yellowLabel.className = "flex justify-between mb-1 text-primary";
+          barEl.className = "h-full bg-primary";
+        }
+      }
+    }
+  });
+
+  // Update Pending Queue
+  const queuePendingCount = document.getElementById('queue-pending-count');
+  if (queuePendingCount) {
+    const pendingJobs = appState.printQueue.filter(j => j.status !== 'DONE' && j.status !== 'FAILED').length;
+    queuePendingCount.innerText = `${pendingJobs} PENDING`;
+  }
+
+  // Update Queue HTML
+  const queueContainer = document.getElementById('queue-items-container');
+  if (!queueContainer) return;
+
+  if (appState.printQueue.length === 0) {
+    queueContainer.innerHTML = `
+      <div class="p-8 text-center text-outline font-mono-labels text-xs uppercase">
+        Aucun travail d'impression en cours ou en attente.
+      </div>
+    `;
+    return;
+  }
+
+  queueContainer.innerHTML = appState.printQueue.map(job => {
+    const isPrinting = job.status === 'PRINTING...';
+    const isDone = job.status === 'DONE';
+    const isFailed = job.status === 'FAILED';
+    
+    let borderClass = 'border-l-4 border-l-outline';
+    let statusClass = 'text-outline';
+    
+    if (isPrinting) {
+      borderClass = 'border-l-8 border-l-secondary';
+      statusClass = 'text-secondary font-bold animate-pulse';
+    } else if (isDone) {
+      borderClass = 'border-l-4 border-l-green-500';
+      statusClass = 'text-green-500 font-bold';
+    } else if (isFailed) {
+      borderClass = 'border-l-4 border-l-error';
+      statusClass = 'text-error font-bold';
+    }
+
+    return `
+      <div class="bg-white border border-primary p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 ${borderClass} hover:bg-surface-container transition-all duration-200">
+        <div class="flex-1 text-left">
+          <div class="flex items-center gap-2 mb-1">
+            <span class="font-mono-labels text-[10px] bg-primary text-on-primary px-1">${job.id}</span>
+            <span class="font-mono-labels text-[10px] ${statusClass}">${job.status} ${isPrinting ? `(${job.progress}%)` : ''}</span>
+          </div>
+          <h3 class="font-bold text-xs uppercase text-primary">${job.name}</h3>
+          <p class="font-mono-labels text-[9px] text-on-surface-variant">PRINTER: ${job.printer} | REQ: ${job.time}</p>
+        </div>
+        <div class="flex items-center gap-6 font-mono-labels text-xs">
+          <div class="text-right">
+            <div class="text-[9px] text-on-surface-variant">QTY</div>
+            <div class="font-bold">${job.qty}ex</div>
+          </div>
+          <div class="text-right">
+            <div class="text-[9px] text-on-surface-variant">PRIX</div>
+            <div class="font-bold">${job.price}</div>
+          </div>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function startTerminalQueueProcessor() {
+  if (appState.terminalIntervalId) return;
+
+  appState.terminalIntervalId = setInterval(() => {
+    if (appState.isTerminalPaused) return;
+
+    // Find the currently active printing job
+    let activeJob = appState.printQueue.find(j => j.status === 'PRINTING...');
+    
+    if (activeJob) {
+      // Progress the printing
+      activeJob.progress += Math.floor(Math.random() * 15) + 5; // increment progress
+      
+      // Consume ink
+      const inkLoss = 0.05 + Math.random() * 0.15;
+      appState.inkLevels.cyan = Math.max(0, appState.inkLevels.cyan - inkLoss);
+      appState.inkLevels.magenta = Math.max(0, appState.inkLevels.magenta - inkLoss);
+      appState.inkLevels.yellow = Math.max(0, appState.inkLevels.yellow - inkLoss);
+      appState.inkLevels.black = Math.max(0, appState.inkLevels.black - inkLoss);
+      
+      // Check if ink runs dry
+      if (Object.values(appState.inkLevels).some(level => level <= 0)) {
+        appState.isTerminalPaused = true;
+        activeJob.status = "QUEUED";
+        addTerminalLog("SYSTEM_ALERT: INK DRY! PRINT TERMINATED. REPLACE CARTRIDGE.");
+        showToast("ALERTE IMPRIMANTE : ENCRE ÉPUISÉE !", "error");
+        
+        const pulseStatus = document.getElementById('terminal-pulse-status');
+        if (pulseStatus) {
+          pulseStatus.innerText = "OUT_OF_INK";
+          pulseStatus.parentElement.className = "px-8 py-4 border-2 border-primary flex items-center gap-4 w-full justify-center bg-error text-white animate-pulse";
+        }
+        updatePrintStationUI();
+        return;
+      }
+      
+      // Log some details sometimes
+      if (Math.random() > 0.6) {
+        addTerminalLog(`PRN_FEED: Printing page ${Math.floor(activeJob.qty * activeJob.progress / 100)} / ${activeJob.qty} for ${activeJob.id}`);
+      }
+
+      if (activeJob.progress >= 100) {
+        activeJob.progress = 100;
+        activeJob.status = 'DONE';
+        addTerminalLog(`PRINT_COMPLETE: Job ${activeJob.id} successfully completed (${activeJob.qty} copies).`);
+        showToast(`IMPRESSION TERMINÉE : ${activeJob.id}`, "success");
+      }
+    } else {
+      // No active job, look for the next queued job
+      const nextJob = appState.printQueue.find(j => j.status === 'QUEUED');
+      if (nextJob) {
+        nextJob.status = 'PRINTING...';
+        nextJob.progress = 0;
+        addTerminalLog(`PRINT_START: Initiating print sequence for Job ${nextJob.id} (${nextJob.qty} copies)`);
+        showToast(`IMPRESSION EN COURS : ${nextJob.id}`, "info");
+      } else {
+        // Queue is fully complete, stop processor interval to save CPU
+        clearInterval(appState.terminalIntervalId);
+        appState.terminalIntervalId = null;
+        addTerminalLog("SYSTEM_IDLE: All queue processes finished.");
+      }
+    }
+    
+    // Update Pulse Status text
+    const pulseStatus = document.getElementById('terminal-pulse-status');
+    if (pulseStatus) {
+      const activeJobCheck = appState.printQueue.find(j => j.status === 'PRINTING...');
+      if (appState.isTerminalPaused) {
+        pulseStatus.innerText = "TERMINAL_PAUSED";
+        pulseStatus.parentElement.className = "px-8 py-4 border-2 border-primary flex items-center gap-4 w-full justify-center bg-yellow-500 text-white";
+      } else if (activeJobCheck) {
+        pulseStatus.innerText = `PRINTING_JOB (${activeJobCheck.id})`;
+        pulseStatus.parentElement.className = "px-8 py-4 border-2 border-primary flex items-center gap-4 w-full justify-center bg-secondary text-on-secondary pulse-orange-terminal";
+      } else {
+        pulseStatus.innerText = "REMOTE_READY";
+        pulseStatus.parentElement.className = "px-8 py-4 border-2 border-primary flex items-center gap-4 w-full justify-center bg-green-600 text-white";
+      }
+    }
+    
+    updatePrintStationUI();
+  }, 1000);
+}
+
+function toggleTerminalPause() {
+  appState.isTerminalPaused = !appState.isTerminalPaused;
+  const pauseBtn = document.getElementById('btn-terminal-pause');
+  
+  if (appState.isTerminalPaused) {
+    if (pauseBtn) pauseBtn.innerHTML = '<span class="material-symbols-outlined text-[18px]">play_arrow</span> REPRENDRE';
+    addTerminalLog("SYSTEM_OPERATOR: Printing queue paused.");
+    showToast("FIL D'IMPRESSION EN PAUSE", "warning");
+  } else {
+    if (pauseBtn) pauseBtn.innerHTML = '<span class="material-symbols-outlined text-[18px]">pause</span> PAUSE';
+    addTerminalLog("SYSTEM_OPERATOR: Printing queue resumed.");
+    showToast("FIL D'IMPRESSION REPRIS", "success");
+    // Start processor if it was off
+    startTerminalQueueProcessor();
+  }
+}
+
+function stopTerminalJobs() {
+  const activeOrQueued = appState.printQueue.some(j => j.status === 'QUEUED' || j.status === 'PRINTING...');
+  if (!activeOrQueued) return;
+  if (!confirm("Voulez-vous vraiment annuler tous les travaux d'impression restants ?")) return;
+  
+  appState.printQueue.forEach(job => {
+    if (job.status === 'QUEUED' || job.status === 'PRINTING...') {
+      job.status = 'FAILED';
+      addTerminalLog(`JOB_CANCELLED: Job ${job.id} cancelled by operator.`);
+    }
+  });
+  
+  showToast("TOUS LES TRAVAUX EN ATTENTE ONT ÉTÉ ANNULÉS", "error");
+  updatePrintStationUI();
+}
+
+/* ==========================================================================
+   TICTAGE MANUEL (MANUAL LABELING FUNCTIONS)
+   ========================================================================== */
+
+function populateTictageProductSelect() {
+  const selectEl = document.getElementById('tictage-product-select');
+  if (!selectEl) return;
+  
+  selectEl.innerHTML = '';
+  
+  // Add placeholder
+  const defaultOpt = document.createElement('option');
+  defaultOpt.value = "";
+  defaultOpt.innerText = "-- CHOISIR UN PRODUIT --";
+  selectEl.appendChild(defaultOpt);
+  
+  // Add items from appState.catalog
+  appState.catalog.forEach(product => {
+    const opt = document.createElement('option');
+    opt.value = product.sku;
+    opt.innerText = `${product.brand || 'N/A'} - ${product.name} [SKU: ${product.sku}]`;
+    selectEl.appendChild(opt);
+  });
+}
+
+function onTictageProductSelect() {
+  const selectEl = document.getElementById('tictage-product-select');
+  const oldPriceInput = document.getElementById('tictage-old-price');
+  const newPriceInput = document.getElementById('tictage-new-price');
+  
+  const selectedSku = selectEl ? selectEl.value : "";
+  if (!selectedSku) {
+    if (oldPriceInput) oldPriceInput.value = "0.00";
+    if (newPriceInput) newPriceInput.value = "0";
+    calculateTictageMarkdown();
+    return;
+  }
+  
+  const product = appState.catalog.find(p => p.sku === selectedSku);
+  if (product) {
+    // Parse old price
+    const oldPriceStr = product.price.replace(/[^\d\.]/g, ''); // strip "da" or "$"
+    const oldPrice = parseFloat(oldPriceStr) || 0;
+    
+    if (oldPriceInput) oldPriceInput.value = oldPrice.toFixed(2);
+    
+    // Parse new price if discount exists, otherwise default to a 20% markdown
+    let newPrice = oldPrice;
+    if (product.price_discount) {
+      const newPriceStr = product.price_discount.replace(/[^\d\.]/g, '');
+      newPrice = parseFloat(newPriceStr) || oldPrice;
+    } else {
+      newPrice = Math.floor(oldPrice * 0.8 / 10) * 10; // 20% discount rounded to nearest 10
+    }
+    
+    if (newPriceInput) newPriceInput.value = Math.round(newPrice);
+    
+    calculateTictageMarkdown();
+    updateTictagePreview(product);
+  }
+}
+
+function calculateTictageMarkdown() {
+  const oldPriceInput = document.getElementById('tictage-old-price');
+  const newPriceInput = document.getElementById('tictage-new-price');
+  const markdownEl = document.getElementById('tictage-markdown');
+  
+  const oldPrice = parseFloat(oldPriceInput ? oldPriceInput.value : 0) || 0;
+  const newPrice = parseFloat(newPriceInput ? newPriceInput.value : 0) || 0;
+  
+  let pct = 0;
+  if (oldPrice > 0 && newPrice < oldPrice) {
+    pct = Math.round(((oldPrice - newPrice) / oldPrice) * 100);
+  }
+  
+  if (markdownEl) {
+    markdownEl.innerText = `-${pct}%`;
+  }
+  
+  // Update Preview values dynamically
+  const previewOldEl = document.getElementById('preview-label-old-price');
+  const previewNewEl = document.getElementById('preview-label-new-price');
+  
+  if (previewOldEl) {
+    previewOldEl.innerText = oldPrice > 0 ? `${oldPrice.toFixed(2)} da` : "0.00 da";
+  }
+  
+  if (previewNewEl) {
+    const parts = newPrice.toFixed(2).split('.');
+    previewNewEl.innerHTML = `${parts[0]}<span class="text-lg font-bold">.${parts[1]} da</span>`;
+  }
+}
+
+function updateTictagePreview(product) {
+  const previewDept = document.getElementById('preview-label-dept');
+  const previewSku = document.getElementById('preview-label-sku');
+  const previewDate = document.getElementById('preview-label-date');
+  
+  if (previewDept) previewDept.innerText = `DEPT. ${(product.group || 'SHOES').toUpperCase()}`;
+  if (previewSku) previewSku.innerText = product.sku;
+  
+  // Promo range dates (today + 14 days)
+  const today = new Date();
+  const future = new Date();
+  future.setDate(today.getDate() + 14);
+  
+  const formatShortDate = (d) => {
+    return `${String(d.getDate()).padStart(2, '0')}.${String(d.getMonth() + 1).padStart(2, '0')}`;
+  };
+  
+  if (previewDate) {
+    previewDate.innerText = `${formatShortDate(today)} - ${formatShortDate(future)}`;
+  }
+  
+  // Generate random fake barcode lines
+  const barcodeContainer = document.getElementById('preview-barcode-graphic');
+  if (barcodeContainer) {
+    barcodeContainer.innerHTML = '';
+    const numBars = 12 + Math.floor(Math.random() * 8);
+    for (let i = 0; i < numBars; i++) {
+      const width = Math.random() > 0.6 ? (Math.random() > 0.5 ? 3 : 4) : (Math.random() > 0.3 ? 2 : 1);
+      const bar = document.createElement('div');
+      bar.style.width = `${width}px`;
+      bar.style.height = '100%';
+      bar.className = 'bg-primary';
+      barcodeContainer.appendChild(bar);
+      // gap
+      const gap = document.createElement('div');
+      gap.style.width = '1px';
+      barcodeContainer.appendChild(gap);
+    }
+  }
+}
+
+function triggerTictagePrint() {
+  const selectEl = document.getElementById('tictage-product-select');
+  const copiesInput = document.getElementById('tictage-copies');
+  const printerSelect = document.getElementById('tictage-printer');
+  const newPriceInput = document.getElementById('tictage-new-price');
+  
+  const sku = selectEl ? selectEl.value : "";
+  if (!sku) {
+    showToast("VEUILLEZ SÉLECTIONNER UN PRODUIT D'ABORD", "error");
+    return;
+  }
+  
+  const product = appState.catalog.find(p => p.sku === sku);
+  if (!product) return;
+  
+  const qty = parseInt(copiesInput ? copiesInput.value : 1) || 1;
+  const printer = printerSelect ? printerSelect.value : 'Terminal_04';
+  const newPrice = parseFloat(newPriceInput ? newPriceInput.value : 0) || 0;
+  
+  // Add job to print station queue
+  const jobId = "JOB-#" + Math.floor(1000 + Math.random() * 9000);
+  const timeStr = new Date().toTimeString().split(' ')[0];
+  
+  const newJob = {
+    id: jobId,
+    name: `${product.brand || 'FLODB'} ${product.name}`.toUpperCase(),
+    qty: qty,
+    price: `${newPrice.toFixed(2)} da`,
+    status: 'QUEUED',
+    progress: 0,
+    printer: printer,
+    time: timeStr
+  };
+  
+  appState.printQueue.unshift(newJob);
+  addTerminalLog(`JOB_INIT: Manual labeling job ${jobId} queued for printer ${printer} (${qty} copies)`);
+  showToast("TRAVAIL D'IMPRESSION AJOUTÉ", "success");
+  
+  // Start queue processor
+  startTerminalQueueProcessor();
+  
+  // Switch view to Print Station
+  switchView('print-station');
+}
+
+// Ouvre le produit scanné directement dans l'interface de Tictage Manuel
+function openProductInTictage() {
+  const product = appState.selectedProduct;
+  if (!product) {
+    showToast("AUCUN PRODUIT SCANNÉ À ÉTIQUETER", "warning");
+    return;
+  }
+
+  // S'assurer que le produit est présent dans le catalogue pour pouvoir le sélectionner dans le dropdown
+  const exists = appState.catalog.some(p => p.sku === product.sku);
+  if (!exists) {
+    appState.catalog.push({
+      barcode: product.barcode || product.sku,
+      sku: product.sku,
+      name: product.name,
+      price: product.price,
+      price_discount: product.price_discount,
+      brand: product.brand || 'INCONNU',
+      size: product.size || 'STD',
+      color: product.color || 'N/A',
+      gender: product.gender || 'UNISEX',
+      group: product.group || 'N/A',
+      type: product.type || 'N/A',
+      market: product.market || 'N/A',
+      image: product.image || getProductImage(product)
+    });
+    localStorage.setItem('scancore_catalog', JSON.stringify(appState.catalog));
+    populateTictageProductSelect();
+  }
+
+  // Naviguer vers la vue
+  switchView('tictage-manuel');
+
+  // Sélectionner le produit dans la liste
+  const selectEl = document.getElementById('tictage-product-select');
+  if (selectEl) {
+    selectEl.value = product.sku;
+    onTictageProductSelect();
+  }
+}
+
+// Recherche asynchrone d'un produit (IndexedDB -> Supabase -> Catalogue) pour le Tictage Manuel
+async function searchProductForTictage() {
+  const inputEl = document.getElementById('tictage-search-input');
+  if (!inputEl) return;
+
+  const code = inputEl.value.trim();
+  if (!code) {
+    showToast("ERREUR : SAISIE VIDE", "error");
+    return;
+  }
+
+  showToast(`RECHERCHE DE L'ARTICLE ${code}...`, "info");
+
+  try {
+    let product = null;
+
+    // 1. Recherche IndexedDB
+    try {
+      product = await getProductFromOfflineDB(code);
+    } catch (dbErr) {
+      console.warn("Tictage DB search failed:", dbErr);
+    }
+
+    // 2. Recherche Supabase
+    if (!product) {
+      const numericCode = parseInt(code, 10);
+      let query = supabaseClient.from('base_flo').select('*');
+      
+      if (!isNaN(numericCode)) {
+        query = query.or(`"Code-barres article".eq.${numericCode},Ref.eq.${code}`);
+      } else {
+        query = query.eq('Ref', code);
+      }
+      
+      const { data, error } = await query.limit(1);
+      if (!error && data && data.length > 0) {
+        const row = data[0];
+        product = {
+          barcode: String(row['Code-barres article']),
+          sku: row['Ref'] || String(row['Code-barres article']),
+          name: row['Nom de l\'article'] || 'Produit Sans Nom',
+          price: row['Prix'] || '0 da',
+          price_discount: row['Prix solde'] || null,
+          brand: row['Brand'] || 'INCONNU',
+          size: row['Taille'] || 'STD',
+          color: row['Couleur'] || 'N/A',
+          gender: row['Genre de l\'article'] || 'UNISEX',
+          group: row['Groupe de l\'article'] || 'N/A',
+          type: row['Type de l\'article'] || 'N/A',
+          market: row['March'] || 'N/A',
+          image: getProductImage({
+            group: row['Groupe de l\'article'],
+            name: row['Nom de l\'article']
+          })
+        };
+      }
+    }
+
+    // 3. Recherche catalogue local
+    if (!product) {
+      product = appState.catalog.find(p => p.sku.toUpperCase() === code.toUpperCase() || p.barcode === code);
+    }
+
+    if (!product) {
+      showToast(`PRODUIT NON TROUVÉ : ${code}`, "error");
+      return;
+    }
+
+    // S'assurer qu'il est dans le catalogue pour peupler la liste déroulante
+    const exists = appState.catalog.some(p => p.sku === product.sku);
+    if (!exists) {
+      appState.catalog.push(product);
+      localStorage.setItem('scancore_catalog', JSON.stringify(appState.catalog));
+      populateTictageProductSelect();
+    }
+
+    // Sélectionner dans la liste
+    const selectEl = document.getElementById('tictage-product-select');
+    if (selectEl) {
+      selectEl.value = product.sku;
+      onTictageProductSelect();
+    }
+
+    inputEl.value = '';
+    showToast(`PRODUIT CHARGÉ : ${product.name}`, "success");
+  } catch (err) {
+    console.error("Error in tictage product search:", err);
+    showToast("ERREUR LORS DE LA RECHERCHE DE L'ARTICLE", "error");
+  }
+}
+
+// Fonction de maintenance pour ravitailler l'encre
+function replenishInk() {
+  appState.inkLevels = {
+    cyan: 100,
+    magenta: 100,
+    yellow: 100,
+    black: 100
+  };
+  
+  addTerminalLog("SYS_MAINT: Ink cartridges replaced. Levels reset to 100%.");
+  showToast("CARTOUCHES REMPLACÉES : NIVEAUX 100%", "success");
+  
+  // Si le terminal était en pause à cause de l'encre, on le débloque
+  if (appState.isTerminalPaused) {
+    const pulseStatus = document.getElementById('terminal-pulse-status');
+    if (pulseStatus && pulseStatus.innerText === "OUT_OF_INK") {
+      appState.isTerminalPaused = false;
+      const pauseBtn = document.getElementById('btn-terminal-pause');
+      if (pauseBtn) pauseBtn.innerHTML = '<span class="material-symbols-outlined text-[18px]">pause</span> PAUSE';
+      addTerminalLog("SYSTEM_STATUS: REMOTE_READY");
+      startTerminalQueueProcessor();
+    }
+  }
+  
+  updatePrintStationUI();
+}
+

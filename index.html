@@ -112,17 +112,23 @@
       </span>
     </div>
     <!-- Menu principal (Actifs / Inactifs toggles) -->
-    <nav class="hidden md:flex gap-8 h-full items-center">
-      <button id="nav-btn-live" class="text-secondary font-bold border-b-2 border-secondary h-full px-3 py-1 font-mono-labels text-xs uppercase" onclick="switchView('live')">
+    <nav class="hidden md:flex gap-6 h-full items-center">
+      <button id="nav-btn-live" class="text-secondary font-bold border-b-2 border-secondary h-full px-2 py-1 font-mono-labels text-xs uppercase" onclick="switchView('live')">
         Scanner
       </button>
-      <button id="nav-btn-history" class="text-primary font-medium hover:bg-surface-container-high transition-colors duration-75 px-3 py-1 border-2 border-transparent font-mono-labels text-xs uppercase" onclick="switchView('history')">
+      <button id="nav-btn-history" class="text-primary font-medium hover:bg-surface-container-high transition-colors duration-75 px-2 py-1 border-2 border-transparent font-mono-labels text-xs uppercase" onclick="switchView('history')">
         Historique
       </button>
-      <button id="nav-btn-print" class="text-primary font-medium hover:bg-surface-container-high transition-colors duration-75 px-3 py-1 border-2 border-transparent font-mono-labels text-xs uppercase" onclick="switchView('print')">
+      <button id="nav-btn-print-station" class="text-primary font-medium hover:bg-surface-container-high transition-colors duration-75 px-2 py-1 border-2 border-transparent font-mono-labels text-xs uppercase" onclick="switchView('print-station')">
+        Station Imp.
+      </button>
+      <button id="nav-btn-tictage-manuel" class="text-primary font-medium hover:bg-surface-container-high transition-colors duration-75 px-2 py-1 border-2 border-transparent font-mono-labels text-xs uppercase" onclick="switchView('tictage-manuel')">
+        Tictage Manuel
+      </button>
+      <button id="nav-btn-print" class="text-primary font-medium hover:bg-surface-container-high transition-colors duration-75 px-2 py-1 border-2 border-transparent font-mono-labels text-xs uppercase" onclick="switchView('print')">
         Imprimante
       </button>
-      <button id="nav-btn-marketing" class="text-primary font-medium hover:bg-surface-container-high transition-colors duration-75 px-3 py-1 border-2 border-transparent font-mono-labels text-xs uppercase" onclick="switchView('marketing')">
+      <button id="nav-btn-marketing" class="text-primary font-medium hover:bg-surface-container-high transition-colors duration-75 px-2 py-1 border-2 border-transparent font-mono-labels text-xs uppercase" onclick="switchView('marketing')">
         Marketing
       </button>
     </nav>
@@ -133,6 +139,9 @@
       </button>
       <button class="hover:bg-primary hover:text-on-primary p-2 border-2 border-transparent hover:border-primary transition-colors flex items-center justify-center" onclick="showSystemStatus('Signal Strength: 100%')" title="Capteurs">
         <span class="material-symbols-outlined">sensors</span>
+      </button>
+      <button id="header-db-status-btn" class="hover:bg-primary hover:text-on-primary p-2 border-2 border-transparent hover:border-primary transition-colors flex items-center justify-center text-primary" onclick="switchView('history')" title="Statut Base Locale">
+        <span class="material-symbols-outlined" id="header-db-icon">database</span>
       </button>
       <button class="hover:bg-primary hover:text-on-primary p-2 border-2 border-transparent hover:border-primary transition-colors flex items-center justify-center" onclick="confirmReset()" title="Réinitialiser l'application">
         <span class="material-symbols-outlined">power_settings_new</span>
@@ -162,9 +171,17 @@
         <span class="material-symbols-outlined">history_edu</span>
         <span class="font-mono-labels text-xs uppercase">Journal de scan</span>
       </button>
-      <button id="side-btn-print" class="flex items-center gap-4 text-primary p-4 w-full border-b border-primary hover:bg-secondary-container hover:text-on-secondary-container transition-colors text-left" onclick="switchView('print')">
+      <button id="side-btn-print-station" class="flex items-center gap-4 text-primary p-4 w-full border-b border-primary hover:bg-secondary-container hover:text-on-secondary-container transition-colors text-left" onclick="switchView('print-station')">
         <span class="material-symbols-outlined">print</span>
-        <span class="font-mono-labels text-xs uppercase">Imprimantes</span>
+        <span class="font-mono-labels text-xs uppercase">Station Imp.</span>
+      </button>
+      <button id="side-btn-tictage-manuel" class="flex items-center gap-4 text-primary p-4 w-full border-b border-primary hover:bg-secondary-container hover:text-on-secondary-container transition-colors text-left" onclick="switchView('tictage-manuel')">
+        <span class="material-symbols-outlined">sell</span>
+        <span class="font-mono-labels text-xs uppercase">Tictage Manuel</span>
+      </button>
+      <button id="side-btn-print" class="flex items-center gap-4 text-primary p-4 w-full border-b border-primary hover:bg-secondary-container hover:text-on-secondary-container transition-colors text-left" onclick="switchView('print')">
+        <span class="material-symbols-outlined">label</span>
+        <span class="font-mono-labels text-xs uppercase">Ticket Impr.</span>
       </button>
       <button id="side-btn-marketing" class="flex items-center gap-4 text-primary p-4 w-full border-b border-primary hover:bg-secondary-container hover:text-on-secondary-container transition-colors text-left" onclick="switchView('marketing')">
         <span class="material-symbols-outlined">description</span>
@@ -283,19 +300,25 @@
         </div>
       </div>
 
-      <!-- Métadonnées techniques (Bento Style) -->
       <div class="grid grid-cols-1 md:grid-cols-3 border-b-2 border-primary bg-background">
-        <div class="p-6 border-b-2 md:border-b-0 md:border-r-2 border-primary flex flex-col justify-between h-32">
+        <div class="p-6 border-b-2 md:border-b-0 md:border-r-2 border-primary flex flex-col justify-between h-32 bg-surface-container-lowest">
           <span class="font-mono-labels text-xs text-surface-tint uppercase">Dernière séquence</span>
           <span id="meta-last-sequence" class="font-mono-labels text-xl md:text-2xl text-primary tracking-widest">SEQ-0994-A</span>
         </div>
-        <div class="p-6 border-b-2 md:border-b-0 md:border-r-2 border-primary flex flex-col justify-between h-32">
-          <span class="font-mono-labels text-xs text-surface-tint uppercase" id="label-error-rate">Taux de Remise</span>
-          <span id="meta-error-rate" class="font-mono-labels text-xl md:text-2xl text-primary tracking-widest">0.00%</span>
+        <div class="p-4 border-b-2 md:border-b-0 md:border-r-2 border-primary flex flex-col justify-between h-32 bg-surface-container-lowest">
+          <span class="font-mono-labels text-[10px] text-surface-tint uppercase" id="offline-sync-status">Base locale: Indisponible</span>
+          <div class="flex gap-2">
+            <button id="btn-sync-offline-db" class="flex-1 bg-primary text-white border-2 border-primary py-2 px-3 font-mono-labels text-[10px] font-bold uppercase hover:bg-secondary hover:text-white transition-all hard-shadow" onclick="downloadOfflineDatabase()">
+              Télécharger Base (Hors ligne)
+            </button>
+            <button id="btn-clear-offline-db" class="bg-white text-error border-2 border-error p-2 font-mono-labels text-[10px] uppercase hover:bg-error hover:text-white transition-colors" onclick="clearOfflineDatabase()" title="Vider le cache local">
+              <span class="material-symbols-outlined text-[16px] flex items-center justify-center">delete</span>
+            </button>
+          </div>
         </div>
         <div class="p-6 flex flex-col justify-between h-32 bg-surface-container-high relative overflow-hidden">
           <span class="font-mono-labels text-xs text-primary uppercase flex justify-between z-10">
-            <span>Charge de base de données</span>
+            <span id="db-load-title">Charge de base de données</span>
             <span id="db-load-warn" class="text-secondary font-bold hidden">WARN</span>
           </span>
           <div class="w-full border-2 border-primary h-6 p-[2px] bg-white z-10">
@@ -419,12 +442,15 @@
         </div>
         
         <!-- Boutons d'Action Impression -->
-        <div class="mt-6 flex justify-end gap-4">
+        <div class="mt-6 flex flex-wrap justify-end gap-4">
           <button class="border-2 border-primary bg-white text-primary font-bold text-xs md:text-sm px-6 py-4 hover:bg-primary hover:text-on-primary transition-colors hard-shadow uppercase" onclick="simulatePrint('local')">
             Imprimer Localement
           </button>
           <button class="border-2 border-primary bg-primary text-on-primary font-bold text-xs md:text-sm px-6 py-4 hover:bg-secondary-container transition-colors hard-shadow uppercase" onclick="simulatePrint('remote')">
             Imprimer à distance (Serveur)
+          </button>
+          <button class="border-2 border-primary bg-secondary text-on-secondary font-bold text-xs md:text-sm px-6 py-4 hover:bg-secondary-container transition-colors hard-shadow uppercase" onclick="openProductInTictage()">
+            Étiqueter (Tictage)
           </button>
         </div>
       </div>
@@ -880,6 +906,234 @@
         </div>
       </div>
     </section>
+
+    <!-- ==================== VUE 7 : STATION D'IMPRESSION (TERMINAL) ==================== -->
+    <section id="view-print-station" class="hidden flex-1 flex flex-col p-6 md:p-12 grid-bg">
+      <div class="max-w-container-max mx-auto w-full space-y-6">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 h-full items-start">
+          <!-- Left Column: Terminal Status and Incoming Queue -->
+          <div class="space-y-6 flex flex-col h-full text-left">
+            <header class="bg-white border-2 border-primary hard-shadow p-8 flex flex-col items-center justify-between gap-6 hover:bg-surface-container-low transition-colors duration-300">
+              <div class="text-center w-full">
+                <h1 class="text-3xl md:text-5xl font-black uppercase mb-2">Terminal_04</h1>
+                <p class="font-mono-labels text-xs text-on-surface-variant flex items-center justify-center gap-2">
+                  <span class="material-symbols-outlined text-[16px]">location_on</span>
+                  WAREHOUSE_SEC_7 | IP: 192.168.1.104
+                </p>
+              </div>
+              <div class="px-8 py-4 border-2 border-primary flex items-center gap-4 w-full justify-center bg-secondary text-on-secondary pulse-orange-terminal">
+                <span class="material-symbols-outlined text-[32px] animate-pulse">sensors</span>
+                <span class="font-mono-labels text-lg font-black uppercase tracking-widest" id="terminal-pulse-status">REMOTE_READY</span>
+              </div>
+            </header>
+            
+            <div class="bg-white border-2 border-primary hard-shadow flex flex-col flex-1 min-h-[400px]">
+              <div class="p-4 border-b-2 border-primary bg-primary text-on-primary flex justify-between items-center">
+                <h2 class="font-mono-labels text-xs font-bold uppercase tracking-wider flex items-center gap-2">
+                  <span class="material-symbols-outlined">queue</span>
+                  FILE_D'ATTENTE (QUEUE)
+                </h2>
+                <span class="bg-secondary px-2 py-1 font-mono-labels text-[10px] border border-on-primary" id="queue-pending-count">0 PENDING</span>
+              </div>
+              <div class="flex-1 overflow-y-auto bg-surface-container-low p-4 space-y-2 max-h-[450px]" id="queue-items-container">
+                <!-- Injecté dynamiquement par JavaScript -->
+                <div class="p-8 text-center text-outline font-mono-labels text-xs uppercase">
+                  Aucun travail d'impression en cours ou en attente.
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Right Column: Printer Status, Override, and Log -->
+          <div class="space-y-6 flex flex-col h-full text-left">
+            <div class="bg-white border-2 border-primary hard-shadow p-6">
+              <h3 class="font-mono-labels text-xs font-bold border-b-2 border-primary pb-2 mb-4 uppercase">ETAT_IMPRIMANTE (PRINTER_STATUS)</h3>
+              <div class="space-y-4 font-mono-labels text-xs">
+                <div>
+                  <div class="flex justify-between mb-1"><span>INK_LEVEL_CYAN</span><span id="ink-cyan-text">85%</span></div>
+                  <div class="h-3 w-full border-2 border-primary p-[2px] bg-white">
+                    <div id="ink-cyan-bar" class="h-full bg-primary" style="width: 85%"></div>
+                  </div>
+                </div>
+                <div>
+                  <div class="flex justify-between mb-1"><span>INK_LEVEL_MAGENTA</span><span id="ink-magenta-text">42%</span></div>
+                  <div class="h-3 w-full border-2 border-primary p-[2px] bg-white">
+                    <div id="ink-magenta-bar" class="h-full bg-primary" style="width: 42%"></div>
+                  </div>
+                </div>
+                <div>
+                  <div class="flex justify-between mb-1 text-secondary" id="ink-yellow-label"><span>INK_LEVEL_YELLOW (LOW)</span><span id="ink-yellow-text">12%</span></div>
+                  <div class="h-3 w-full border-2 border-primary p-[2px] bg-white">
+                    <div id="ink-yellow-bar" class="h-full bg-secondary animate-pulse" style="width: 12%"></div>
+                  </div>
+                </div>
+                <div>
+                  <div class="flex justify-between mb-1"><span>INK_LEVEL_BLACK</span><span id="ink-black-text">90%</span></div>
+                  <div class="h-3 w-full border-2 border-primary p-[2px] bg-white">
+                    <div id="ink-black-bar" class="h-full bg-primary" style="width: 90%"></div>
+                  </div>
+                </div>
+              </div>
+              <button id="btn-replenish-ink" class="mt-4 w-full bg-white text-primary border-2 border-primary py-2 font-mono-labels text-xs font-bold hover:bg-primary hover:text-on-primary transition-all uppercase flex justify-center items-center gap-2" onclick="replenishInk()">
+                <span class="material-symbols-outlined text-[16px]">water_drop</span> Ravitailler Encre
+              </button>
+            </div>
+            
+            <div class="bg-white border-2 border-primary p-6 border-l-8 border-l-primary hover:border-l-[16px] transition-all duration-300">
+              <h3 class="font-mono-labels text-xs font-bold uppercase mb-4">CONTRÔLE_MANUEL</h3>
+              <div class="flex gap-3">
+                <button id="btn-terminal-pause" class="flex-1 bg-white text-primary border-2 border-primary py-3 font-mono-labels text-xs font-bold hover:bg-primary hover:text-on-primary transition-all uppercase flex justify-center items-center gap-2" onclick="toggleTerminalPause()">
+                  <span class="material-symbols-outlined text-[18px]">pause</span> PAUSE
+                </button>
+                <button id="btn-terminal-stop" class="flex-1 bg-white text-error border-2 border-error py-3 font-mono-labels text-xs font-bold hover:bg-error hover:text-white transition-all uppercase flex justify-center items-center gap-2" onclick="stopTerminalJobs()">
+                  <span class="material-symbols-outlined text-[18px]">cancel</span> ARRETER
+                </button>
+              </div>
+            </div>
+            
+            <section class="bg-primary text-on-primary border-2 border-primary hard-shadow p-4 flex-1 flex flex-col min-h-[250px] relative overflow-hidden">
+              <div class="flex justify-between items-center mb-2 pb-2 border-b border-on-primary/30 z-10 relative">
+                <h2 class="font-mono-labels text-xs font-bold flex items-center gap-2"><span class="material-symbols-outlined text-[18px]">terminal</span> SYSTEM_LOG</h2>
+                <span class="font-mono-labels text-[10px] flex items-center gap-1 text-pulse-orange"><div class="w-2 h-2 rounded-full bg-current"></div> LIVE_STREAM</span>
+              </div>
+              <div class="flex-1 overflow-y-auto font-mono text-[10px] leading-tight space-y-1 text-left opacity-90 z-10 relative max-h-[180px]" id="terminal-sys-log">
+                <!-- Injecté par JS -->
+              </div>
+            </section>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== VUE 8 : TICTAGE MANUEL ==================== -->
+    <section id="view-tictage-manuel" class="hidden flex-1 flex flex-col p-6 md:p-12 grid-bg">
+      <div class="max-w-container-max mx-auto w-full flex flex-col lg:flex-row border-2 border-primary bg-primary overflow-hidden hard-shadow">
+        <!-- LEFT HALF: Controls -->
+        <div class="w-full lg:w-1/2 p-6 md:p-8 bg-surface flex flex-col gap-6 text-left border-b-2 lg:border-b-0 lg:border-r-2 border-primary">
+          <header>
+            <h2 class="text-2xl md:text-3xl font-black uppercase tracking-tight text-primary">Tictage Manuel</h2>
+            <p class="font-mono-labels text-xs text-outline uppercase mt-1">Éditeur d'Étiquettes à la Volée</p>
+          </header>
+          
+          <!-- Selector of product -->
+          <div class="bg-surface-container-lowest border-2 border-primary p-4 relative pt-6">
+            <span class="absolute top-0 left-0 bg-primary text-on-primary font-mono-labels text-[10px] uppercase px-2 py-1 translate-y-[-50%] border border-primary ml-4">Sélection Produit</span>
+            <div class="flex flex-col gap-3 mt-1">
+              <label for="tictage-product-select" class="font-mono-labels text-[10px] uppercase text-on-surface">Choisir dans la base</label>
+              <select id="tictage-product-select" class="w-full border-2 border-primary bg-white py-2 px-3 font-mono-labels text-xs focus:ring-0 focus:border-secondary appearance-none rounded-none" onchange="onTictageProductSelect()">
+                <!-- Injecté dynamiquement par JavaScript -->
+              </select>
+              
+              <div class="flex gap-2 mt-1">
+                <input id="tictage-search-input" class="flex-grow border-2 border-primary bg-white py-2 px-3 font-mono-labels text-xs focus:ring-0 focus:border-secondary" type="text" placeholder="SKU/Code-barres..." onkeydown="if(event.key==='Enter') searchProductForTictage()">
+                <button class="bg-primary text-on-primary font-mono-labels text-xs px-3 hover:bg-secondary transition-colors" onclick="searchProductForTictage()">Charger</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Panel: Price Configuration -->
+          <div class="bg-surface-container-lowest border-2 border-primary p-4 relative pt-6">
+            <span class="absolute top-0 left-0 bg-primary text-on-primary font-mono-labels text-[10px] uppercase px-2 py-1 translate-y-[-50%] border border-primary ml-4">Configuration Prix</span>
+            <div class="flex flex-col gap-3 mt-1">
+              <div class="flex flex-col">
+                <label class="font-mono-labels text-[10px] uppercase mb-1 text-on-surface">Prix d'Origine</label>
+                <div class="relative">
+                  <span class="absolute left-3 top-1/2 -translate-y-1/2 font-mono-labels text-xs text-outline font-bold">DA</span>
+                  <input id="tictage-old-price" class="w-full border border-primary bg-surface-low py-2 pl-10 pr-3 font-mono-labels text-xs" readonly type="text" value="0.00">
+                </div>
+              </div>
+              <div class="flex flex-col">
+                <label class="font-mono-labels text-[10px] uppercase mb-1 text-on-surface">Nouveau Prix de Vente</label>
+                <div class="relative">
+                  <span class="absolute left-3 top-1/2 -translate-y-1/2 font-mono-labels text-xs text-primary font-bold">DA</span>
+                  <input id="tictage-new-price" class="w-full border-2 border-primary bg-white py-2 pl-10 pr-3 font-mono-labels text-xs focus:ring-0 focus:border-secondary font-bold" type="number" step="10" value="0" oninput="calculateTictageMarkdown()">
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Panel: Calculated Impact -->
+          <div class="bg-surface-container-lowest border-2 border-primary p-4 relative pt-6">
+            <span class="absolute top-0 left-0 bg-primary text-on-primary font-mono-labels text-[10px] uppercase px-2 py-1 translate-y-[-50%] border border-primary ml-4">Impact / Markdown</span>
+            <div class="flex items-center justify-between mt-1">
+              <span class="font-mono-labels text-xs uppercase text-outline">Taux de Remise (Markdown)</span>
+              <span id="tictage-markdown" class="text-4xl md:text-5xl font-black text-secondary leading-none">-0%</span>
+            </div>
+          </div>
+          
+          <!-- Panel: Batch Settings -->
+          <div class="bg-surface-container-lowest border-2 border-primary p-4 relative pt-6">
+            <span class="absolute top-0 left-0 bg-primary text-on-primary font-mono-labels text-[10px] uppercase px-2 py-1 translate-y-[-50%] border border-primary ml-4">Paramètres du Lot</span>
+            <div class="flex items-center justify-between gap-4 mt-1">
+              <div class="flex-1 flex flex-col">
+                <label class="font-mono-labels text-[10px] uppercase mb-1 text-on-surface">Exemplaires</label>
+                <input id="tictage-copies" class="w-full border-2 border-primary bg-white py-2 px-3 font-mono-labels text-xs text-center font-bold focus:ring-0 focus:border-secondary" type="number" min="1" value="15">
+              </div>
+              <div class="flex-1 flex flex-col">
+                <label class="font-mono-labels text-[10px] uppercase mb-1 text-on-surface">Imprimante</label>
+                <select id="tictage-printer" class="w-full border-2 border-primary bg-white py-2 px-3 font-mono-labels text-xs focus:ring-0 focus:border-secondary rounded-none">
+                  <option value="Terminal_04">Terminal_04 (Wareh.)</option>
+                  <option value="PRT-ZONE-A">PRT-ZONE-A</option>
+                  <option value="PRT-ZONE-B">PRT-ZONE-B</option>
+                </select>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Final Action -->
+          <div class="pt-2">
+            <button class="w-full bg-[#D9410E] text-white font-mono-labels text-sm font-bold uppercase py-4 px-4 border-2 border-primary hard-shadow hover:bg-secondary hover:text-white transition-all flex items-center justify-center gap-2" onclick="triggerTictagePrint()">
+              <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">print</span>
+              CONFIRMER & IMPRIMER L'ÉTIQUETTE
+            </button>
+          </div>
+        </div>
+        
+        <!-- RIGHT HALF: High-Fidelity Preview -->
+        <div class="w-full lg:w-1/2 grid-bg-preview bg-surface-low relative flex items-center justify-center p-8 md:p-12 min-h-[400px]">
+          <!-- Drafting markings -->
+          <div class="absolute top-4 left-4 font-mono-labels text-[9px] text-outline">PREVIEW_RENDER_V1</div>
+          <div class="absolute bottom-4 right-4 font-mono-labels text-[9px] text-outline">35x35 MM STANDARD</div>
+          <!-- Crosshairs -->
+          <div class="absolute top-1/2 left-0 w-full h-[1px] bg-primary/10 pointer-events-none"></div>
+          <div class="absolute left-1/2 top-0 w-[1px] h-full bg-primary/10 pointer-events-none"></div>
+          
+          <!-- The Label Preview Container -->
+          <div class="relative bg-white w-[300px] h-[300px] border-2 border-primary hard-shadow flex flex-col justify-between p-4 z-10 scale-90 sm:scale-100 transition-transform">
+            <!-- Label Dimensions Indicators -->
+            <div class="absolute -top-[24px] left-0 w-full text-center font-mono-labels text-[9px] text-primary border-t border-primary pt-1">35 mm</div>
+            <div class="absolute top-0 -left-[24px] h-full flex items-center justify-center font-mono-labels text-[9px] text-primary border-l border-primary px-1" style="writing-mode: vertical-rl; transform: rotate(180deg);">35 mm</div>
+            
+            <!-- Label Content -->
+            <div class="flex justify-between items-start">
+              <span id="preview-label-dept" class="font-mono-labels text-[11px] font-bold">DEPT. SHOES</span>
+              <span id="preview-label-sku" class="font-mono-labels text-[9px] text-outline">893-XJ-002</span>
+            </div>
+            <div class="text-center my-auto flex flex-col items-center">
+              <span id="preview-label-old-price" class="font-mono-labels text-sm text-outline line-through mb-1">0.00 da</span>
+              <span id="preview-label-new-price" class="text-4xl font-black leading-none tracking-tighter text-primary">00<span class="text-lg font-bold">.00 da</span></span>
+            </div>
+            <div class="flex justify-between items-end border-t-2 border-primary pt-2 mt-2">
+              <div class="flex flex-col text-left">
+                <span class="font-mono-labels text-[8px] uppercase">Promo valid</span>
+                <span class="font-mono-labels text-[9px] font-bold" id="preview-label-date">28.05 - 11.06</span>
+              </div>
+              <!-- Fake Barcode -->
+              <div class="flex h-[24px] items-end gap-[1px]" id="preview-barcode-graphic">
+                <div class="w-[2px] h-[24px] bg-primary"></div>
+                <div class="w-[1px] h-[24px] bg-primary"></div>
+                <div class="w-[3px] h-[24px] bg-primary"></div>
+                <div class="w-[1px] h-[24px] bg-primary"></div>
+                <div class="w-[2px] h-[24px] bg-primary"></div>
+                <div class="w-[4px] h-[24px] bg-primary"></div>
+                <div class="w-[1px] h-[24px] bg-primary"></div>
+                <div class="w-[2px] h-[24px] bg-primary"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
   </main>
 
   <!-- Modals Système (Ex: Confirmation) -->
@@ -901,24 +1155,24 @@
   </div>
 
   <!-- Barre de navigation inférieure pour Mobile -->
-  <nav class="fixed bottom-0 left-0 right-0 z-50 bg-background border-t-2 border-primary h-16 flex md:hidden justify-around items-center bg-white shadow-[0_-4px_0_0_rgba(0,0,0,0.05)]">
-    <button id="mobile-btn-live" class="flex flex-col items-center gap-1 text-secondary font-bold font-mono-labels text-[9px] uppercase tracking-wider py-1 w-1/5" onclick="switchView('live')">
+  <nav class="fixed bottom-0 left-0 right-0 z-50 bg-background border-t-2 border-primary h-16 flex md:hidden justify-around items-center bg-white shadow-[0_-4px_0_0_rgba(0,0,0,0.05)] overflow-x-auto">
+    <button id="mobile-btn-live" class="flex flex-col items-center gap-1 text-secondary font-bold font-mono-labels text-[9px] uppercase tracking-wider py-1 min-w-[70px]" onclick="switchView('live')">
       <span class="material-symbols-outlined text-[20px]">barcode_scanner</span>
       <span>Scanner</span>
     </button>
-    <button id="mobile-btn-history" class="flex flex-col items-center gap-1 text-primary font-medium font-mono-labels text-[9px] uppercase tracking-wider py-1 w-1/5" onclick="switchView('history')">
+    <button id="mobile-btn-history" class="flex flex-col items-center gap-1 text-primary font-medium font-mono-labels text-[9px] uppercase tracking-wider py-1 min-w-[70px]" onclick="switchView('history')">
       <span class="material-symbols-outlined text-[20px]">history_edu</span>
       <span>Historique</span>
     </button>
-    <button id="mobile-btn-print" class="flex flex-col items-center gap-1 text-primary font-medium font-mono-labels text-[9px] uppercase tracking-wider py-1 w-1/5" onclick="switchView('print')">
+    <button id="mobile-btn-print-station" class="flex flex-col items-center gap-1 text-primary font-medium font-mono-labels text-[9px] uppercase tracking-wider py-1 min-w-[70px]" onclick="switchView('print-station')">
       <span class="material-symbols-outlined text-[20px]">print</span>
-      <span>Impr.</span>
+      <span>Station</span>
     </button>
-    <button id="mobile-btn-marketing" class="flex flex-col items-center gap-1 text-primary font-medium font-mono-labels text-[9px] uppercase tracking-wider py-1 w-1/5" onclick="switchView('marketing')">
-      <span class="material-symbols-outlined text-[20px]">description</span>
-      <span>Kit</span>
+    <button id="mobile-btn-tictage-manuel" class="flex flex-col items-center gap-1 text-primary font-medium font-mono-labels text-[9px] uppercase tracking-wider py-1 min-w-[70px]" onclick="switchView('tictage-manuel')">
+      <span class="material-symbols-outlined text-[20px]">sell</span>
+      <span>Tictage</span>
     </button>
-    <button id="mobile-btn-config" class="flex flex-col items-center gap-1 text-primary font-medium font-mono-labels text-[9px] uppercase tracking-wider py-1 w-1/5" onclick="switchView('config')">
+    <button id="mobile-btn-config" class="flex flex-col items-center gap-1 text-primary font-medium font-mono-labels text-[9px] uppercase tracking-wider py-1 min-w-[70px]" onclick="switchView('config')">
       <span class="material-symbols-outlined text-[20px]">settings_input_component</span>
       <span>Config</span>
     </button>

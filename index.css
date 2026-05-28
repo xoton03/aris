@@ -147,3 +147,87 @@ body {
   background-position: -4px -4px;
 }
 
+/* Ambient CRT Effect */
+.crt-overlay {
+  position: fixed;
+  top: 0; left: 0; width: 100vw; height: 100vh;
+  background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.05) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03));
+  background-size: 100% 4px, 6px 100%;
+  pointer-events: none;
+  z-index: 9999;
+  animation: crt-scanline 10s linear infinite;
+  opacity: 0.5;
+}
+@keyframes crt-scanline {
+  0% { background-position: 0 0, 0 0; }
+  100% { background-position: 0 100vh, 0 0; }
+}
+
+/* Pulsing Indicators */
+.pulse-orange-terminal {
+  animation: pulse-orange-term 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+@keyframes pulse-orange-term {
+  0%, 100% { background-color: #D9410E; color: white; border-color: #D9410E; }
+  50% { background-color: #aa3000; color: rgba(255,255,255,0.7); border-color: #aa3000; }
+}
+
+.text-pulse-orange {
+  animation: text-pulse-orange-anim 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+@keyframes text-pulse-orange-anim {
+  0%, 100% { color: #D9410E; opacity: 1; }
+  50% { color: #D9410E; opacity: 0.4; }
+}
+
+/* Loading Bars */
+.animate-fill {
+  animation: fill-bar-anim 1.2s ease-out forwards;
+}
+@keyframes fill-bar-anim {
+  from { width: 0; }
+}
+
+/* Glitch Boot Transition */
+.glitch-boot {
+  animation: glitch-anim 0.5s cubic-bezier(.25, .46, .45, .94) both;
+}
+@keyframes glitch-anim {
+  0% { transform: translate(0); filter: grayscale(1); }
+  20% { transform: translate(-4px, 2px); filter: contrast(2) invert(0.2); }
+  40% { transform: translate(-2px, -4px); filter: contrast(1.5) hue-rotate(90deg); }
+  60% { transform: translate(4px, 2px); filter: contrast(2) invert(0.1); }
+  80% { transform: translate(2px, -2px); filter: contrast(1.2); }
+  100% { transform: translate(0); filter: none; }
+}
+
+/* Grille de prévisualisation HD pour étiquette 35x35mm */
+.grid-bg-preview {
+  background-size: 20px 20px;
+  background-image: 
+    linear-gradient(to right, #cfc4c5 1px, transparent 1px), 
+    linear-gradient(to bottom, #cfc4c5 1px, transparent 1px);
+}
+
+/* Animations de logs système (effet d'écriture) */
+.log-entry {
+  overflow: hidden;
+  white-space: nowrap;
+  border-right: 2px solid transparent;
+  animation: typing 0.8s steps(40, end) forwards, blink-caret 0.75s step-end infinite;
+  width: 0;
+  display: block;
+}
+
+@keyframes typing {
+  from { width: 0 }
+  to { width: 100%; border-right-color: transparent; }
+}
+
+@keyframes blink-caret {
+  from, to { border-right-color: transparent }
+  50% { border-right-color: currentColor }
+}
+
+
+
