@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html class="light" lang="fr">
+<head>
+  <meta charset="utf-8"/>
+  <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+  <title>SCAN_CORE_V.01 - Dashboard de Scan Industriel</title>
+  
+  <!-- Manifeste PWA et Métadonnées SEO -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#000000">
+  <meta name="description" content="SCAN_CORE_V.01 - Système de scan industriel brutaliste à latence zéro et précision maximale.">
+  
+  <!-- Google Fonts & Material Symbols -->
+  <link href="https://fonts.googleapis.com" rel="preconnect"/>
+  <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+  <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;700;800&family=JetBrains+Mono:wght@500;800&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+  
+  <!-- CSS Personnalisé -->
+  <link rel="stylesheet" href="index.css">
+  
+  <!-- Bibliothèque de Scan Optique Réel -->
+  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+  
+  <!-- SDK Supabase pour connexion DB -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+  <script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "primary-fixed-dim": "#c6c6c6",
+            "tertiary-container": "#1b1b1b",
+            "tertiary-fixed-dim": "#c6c6c6",
+            "on-tertiary-fixed": "#1b1b1b",
+            "on-secondary-fixed-variant": "#852400",
+            "on-background": "#1a1c1c",
+            "on-primary-fixed-variant": "#474747",
+            "primary": "#000000",
+            "secondary-container": "#d43f00",
+            "on-primary": "#ffffff",
+            "surface-container-high": "#e8e8e8",
+            "primary-fixed": "#e2e2e2",
+            "surface": "#f9f9f9",
+            "tertiary": "#000000",
+            "error": "#ba1a1a",
+            "on-tertiary": "#ffffff",
+            "secondary-fixed": "#ffdbd0",
+            "on-primary-fixed": "#1b1b1b",
+            "surface-bright": "#f9f9f9",
+            "on-primary-container": "#848484",
+            "surface-variant": "#e2e2e2",
+            "on-tertiary-container": "#848484",
+            "secondary": "#aa3000",
+            "on-error-container": "#93000a",
+            "on-error": "#ffffff",
+            "tertiary-fixed": "#e2e2e2",
+            "surface-tint": "#5e5e5e",
+            "on-secondary": "#ffffff",
+            "surface-dim": "#dadada",
+            "surface-container-low": "#f3f3f3",
+            "on-surface-variant": "#4c4546",
+            "primary-container": "#1b1b1b",
+            "background": "#f9f9f9",
+            "outline": "#7e7576",
+            "on-secondary-fixed": "#3a0b00",
+            "surface-container-lowest": "#ffffff",
+            "inverse-on-surface": "#f1f1f1",
+            "on-secondary-container": "#fffbff",
+            "outline-variant": "#cfc4c5",
+            "surface-container": "#eeeeee",
+            "on-surface": "#1a1c1c",
+            "surface-container-highest": "#e2e2e2",
+            "on-tertiary-fixed-variant": "#474747",
+            "error-container": "#ffdad6",
+            "secondary-fixed-dim": "#ffb59e",
+            "inverse-primary": "#c6c6c6",
+            "inverse-surface": "#2f3131"
+          },
+          "borderRadius": {
+            "DEFAULT": "0px",
+            "lg": "0px",
+            "xl": "0px",
+            "full": "0px"
+          },
+          "spacing": {
+            "gutter": "0px",
+            "stack-md": "24px",
+            "unit": "8px",
+            "container-max": "1280px",
+            "margin-desktop": "40px",
+            "margin-mobile": "20px",
+            "stack-sm": "8px",
+            "stack-lg": "64px"
+          }
+        }
+      }
+    }
+  </script>
+</head>
+<body class="bg-background text-on-background min-h-screen overflow-x-hidden selection:bg-secondary selection:text-on-secondary">
+
+  <!-- En-tête global -->
+  <header class="fixed top-0 left-0 right-0 z-50 flex justify-between items-center w-full px-margin-mobile md:px-margin-desktop h-16 md:h-20 bg-background border-b-2 border-primary">
+    <div class="flex items-center gap-4">
+      <span class="font-bold text-headline-lg-mobile md:text-headline-lg tracking-tighter uppercase text-primary cursor-pointer" onclick="switchView('live')">
+        SCAN_CORE_V.01
+      </span>
+    </div>
+    <!-- Menu principal (Actifs / Inactifs toggles) -->
+    <nav class="hidden md:flex gap-8 h-full items-center">
+      <button id="nav-btn-live" class="text-secondary font-bold border-b-2 border-secondary h-full px-3 py-1 font-mono-labels text-xs uppercase" onclick="switchView('live')">
+        Scanner
+      </button>
+      <button id="nav-btn-history" class="text-primary font-medium hover:bg-surface-container-high transition-colors duration-75 px-3 py-1 border-2 border-transparent font-mono-labels text-xs uppercase" onclick="switchView('history')">
+        Historique
+      </button>
+      <button id="nav-btn-marketing" class="text-primary font-medium hover:bg-surface-container-high transition-colors duration-75 px-3 py-1 border-2 border-transparent font-mono-labels text-xs uppercase" onclick="switchView('marketing')">
+        Marketing
+      </button>
+    </nav>
+    <!-- Icônes d'état système -->
+    <div class="flex gap-4">
+      <button class="hover:bg-primary hover:text-on-primary p-2 border-2 border-transparent hover:border-primary transition-colors flex items-center justify-center" onclick="showSystemStatus('Hardware Array: OK')" title="Diagnostics">
+        <span class="material-symbols-outlined">memory</span>
+      </button>
+      <button class="hover:bg-primary hover:text-on-primary p-2 border-2 border-transparent hover:border-primary transition-colors flex items-center justify-center" onclick="showSystemStatus('Signal Strength: 100%')" title="Capteurs">
+        <span class="material-symbols-outlined">sensors</span>
+      </button>
+      <button class="hover:bg-primary hover:text-on-primary p-2 border-2 border-transparent hover:border-primary transition-colors flex items-center justify-center" onclick="confirmReset()" title="Réinitialiser l'application">
+        <span class="material-symbols-outlined">power_settings_new</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Barre latérale -->
+  <aside class="fixed left-0 top-16 md:top-20 bottom-0 flex-col z-40 bg-background border-r-2 border-primary w-64 hidden md:flex">
+    <!-- Profil Opérateur -->
+    <div class="p-4 border-b-2 border-primary flex items-center gap-3 bg-surface-container-lowest">
+      <div class="w-10 h-10 bg-surface-variant border-2 border-primary overflow-hidden flex-shrink-0">
+        <img alt="Avatar de l'Opérateur" class="w-full h-full object-cover grayscale" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAoj9SlHeaQvXUhCdHxZcMmfLoZA8C36CXpfMiAnnlRnUE2-7GeiHtjkPh1RUIrclDJb4d7j9V_uA8l8-FYrn9xu0Q0KbQTG6eGlfdEs0W4RyYkhDLJcVhGUcncOo-RZU3HQ9J2clSCoFlKbG3dlc2L8N2o2EBkRsuDfmW58Vula0aDIav83y0vvDCdgl8ShzHbYWlQHIkqrBmcrLny_Wsq1eEKI5Lx86e4u3xtFNxGZ84PAg29xbI93gEy0T5iImG9Ev4xk-eEQtLv"/>
+      </div>
+      <div class="overflow-hidden">
+        <div class="font-mono-labels text-xs font-black uppercase text-primary truncate">OP_SYS_ADMIN</div>
+        <div class="font-mono-labels text-[10px] text-surface-tint truncate">Node: 127.0.0.1</div>
+      </div>
+    </div>
+    <!-- Liens de navigation bar latérale -->
+    <nav class="flex-1 overflow-y-auto">
+      <button id="side-btn-live" class="flex items-center gap-4 bg-primary text-on-primary p-4 w-full border-b border-primary text-left" onclick="switchView('live')">
+        <span class="material-symbols-outlined">barcode_scanner</span>
+        <span class="font-mono-labels text-xs uppercase">Scanner Live</span>
+      </button>
+      <button id="side-btn-history" class="flex items-center gap-4 text-primary p-4 w-full border-b border-primary hover:bg-secondary-container hover:text-on-secondary-container transition-colors text-left" onclick="switchView('history')">
+        <span class="material-symbols-outlined">history_edu</span>
+        <span class="font-mono-labels text-xs uppercase">Journal de scan</span>
+      </button>
+      <button id="side-btn-marketing" class="flex items-center gap-4 text-primary p-4 w-full border-b border-primary hover:bg-secondary-container hover:text-on-secondary-container transition-colors text-left" onclick="switchView('marketing')">
+        <span class="material-symbols-outlined">description</span>
+        <span class="font-mono-labels text-xs uppercase">Kit Marketing</span>
+      </button>
+      <button id="side-btn-config" class="flex items-center gap-4 text-primary p-4 w-full border-b border-primary hover:bg-secondary-container hover:text-on-secondary-container transition-colors text-left" onclick="switchView('config')">
+        <span class="material-symbols-outlined">settings_input_component</span>
+        <span class="font-mono-labels text-xs uppercase">Configuration</span>
+      </button>
+    </nav>
+    
+    <!-- Footer de barre latérale -->
+    <div class="border-t-2 border-primary bg-surface-container-low">
+      <a class="flex items-center gap-4 text-primary p-4 w-full border-b border-primary/20 hover:bg-secondary-container hover:text-on-secondary-container transition-colors" href="https://github.com" target="_blank">
+        <span class="material-symbols-outlined">terminal</span>
+        <span class="font-mono-labels text-xs uppercase">Source Code</span>
+      </a>
+      <div class="p-4 font-mono-labels text-[10px] text-outline text-center uppercase">
+        SCAN_CORE PRO V.01 © 2026
+      </div>
+    </div>
+  </aside>
+
+  <!-- Container de Toasts Notification Brutaliste -->
+  <div id="toast-container" class="fixed bottom-6 right-6 z-50 flex flex-col gap-3 max-w-sm pointer-events-none"></div>
+
+  <!-- Contenu Principal -->
+  <main class="pt-16 pb-20 md:pb-0 md:pt-20 md:ml-64 min-h-screen flex flex-col">
+    
+    <!-- ==================== VUE 1 : SCANNER LIVE ==================== -->
+    <section id="view-live" class="flex-1 flex flex-col items-center justify-center p-6 md:p-12 relative overflow-hidden grid-bg">
+      <div class="w-full max-w-4xl aspect-[4/3] md:aspect-video relative border-2 border-primary bg-black hard-shadow overflow-hidden">
+        <!-- Conteneur pour le flux de scan html5-qrcode -->
+        <div id="qr-reader" class="absolute inset-0 w-full h-full object-cover"></div>
+        
+
+        
+        <!-- Réticule de visée laser -->
+        <div class="absolute inset-0 flex items-center justify-center pointer-events-none z-20">
+          <div class="w-48 h-48 md:w-64 md:h-64 border-2 border-error border-dashed opacity-80 relative">
+            <div class="absolute -top-2 -left-2 w-4 h-4 border-t-4 border-l-4 border-error"></div>
+            <div class="absolute -top-2 -right-2 w-4 h-4 border-t-4 border-r-4 border-error"></div>
+            <div class="absolute -bottom-2 -left-2 w-4 h-4 border-b-4 border-l-4 border-error"></div>
+            <div class="absolute -bottom-2 -right-2 w-4 h-4 border-b-4 border-r-4 border-error"></div>
+          </div>
+        </div>
+        
+        <!-- Ligne laser de scan animée -->
+        <div class="scan-line z-20"></div>
+        
+        <!-- Métadonnées haut gauche -->
+        <div class="absolute top-4 left-4 font-mono-labels text-[10px] md:text-xs text-on-primary bg-primary/80 p-2 border border-on-primary/30 z-20">
+          <div>FEED_STATUS: ACTIVE</div>
+          <div class="text-error" id="fps-counter">FPS: 60.00</div>
+          <div id="mode-text">MODE: WEBCAM_IDLE</div>
+        </div>
+        
+        <!-- Métadonnées bas droite -->
+        <div class="absolute bottom-4 right-4 font-mono-labels text-[10px] md:text-xs text-on-primary bg-primary/80 p-2 border border-on-primary/30 text-right z-20">
+          <div id="scan-status-text" class="animate-pulse text-error">STATUS: AWAITING_ALIGNMENT</div>
+          <div>LATENCY: 12ms</div>
+        </div>
+        
+        <!-- Point central -->
+        <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-1 h-1 bg-error rounded-full shadow-[0_0_8px_#ba1a1a] z-20"></div>
+      </div>
+      
+      <!-- Boutons d'Action & Formulaire -->
+      <div class="mt-8 flex flex-col gap-4 w-full max-w-md">
+        <!-- Contrôles Webcam -->
+        <div class="flex gap-4">
+          <button id="btn-toggle-camera" class="w-full bg-primary text-on-primary border-2 border-primary py-3 px-4 font-bold text-xs uppercase tracking-wider hover:bg-secondary transition-all active:translate-x-0.5 active:translate-y-0.5 hard-shadow" onclick="toggleCameraInput()">
+            Activer la Webcam
+          </button>
+        </div>
+        
+        <!-- Saisie Manuelle de Code-barres -->
+        <div class="border-2 border-primary bg-white p-4 hard-shadow flex flex-col gap-3">
+          <label for="manual-barcode-input" class="font-mono-labels text-[10px] text-outline uppercase">// SAISIE_MANUELLE_BARCODE</label>
+          <div class="flex gap-2">
+            <input type="text" id="manual-barcode-input" placeholder="EX: X-99-ALPHA-772..." class="flex-1 bg-surface-low border-2 border-primary px-3 py-2 font-mono-labels text-xs uppercase focus:ring-0 focus:border-secondary placeholder-outline" onkeydown="if(event.key==='Enter') submitManualBarcode()">
+            <button class="bg-primary text-on-primary border-2 border-primary px-4 py-2 font-bold text-xs uppercase hover:bg-secondary transition-colors" onclick="submitManualBarcode()">
+              Saisir
+            </button>
+          </div>
+        </div>
+        
+        <div class="font-mono-labels text-[10px] text-outline uppercase mt-1 text-center">
+          Placez le code devant la webcam ou saisissez-le manuellement.
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== VUE 2 : JOURNAL D'HISTORIQUE ==================== -->
+    <section id="view-history" class="hidden flex-1 flex flex-col">
+      <!-- En-tête de page -->
+      <div class="px-margin-mobile md:px-margin-desktop py-6 border-b-2 border-primary bg-surface flex flex-col md:flex-row md:items-end justify-between gap-4">
+        <div>
+          <h1 class="font-extrabold text-3xl md:text-5xl uppercase tracking-tighter text-primary">HISTORY_LOG</h1>
+          <p class="font-mono-labels text-xs text-surface-tint mt-2 flex items-center gap-2">
+            <span class="w-2 h-2 bg-secondary inline-block"></span> 
+            SYS_STATUS: ACTIVE | TOTAL_SCANS: <span id="stats-total-scans">3</span>
+          </p>
+        </div>
+        <!-- Boutons d'actions groupés -->
+        <div class="flex gap-2">
+          <button class="font-mono-labels text-xs uppercase px-4 py-2 bg-surface text-primary border-2 border-primary hover:bg-primary hover:text-on-primary transition-all active:translate-x-0.5 active:translate-y-0.5 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]" onclick="toggleFilterModal()">
+            Filtrer
+          </button>
+          <button class="font-mono-labels text-xs uppercase px-4 py-2 bg-primary text-on-primary border-2 border-primary hover:bg-secondary hover:text-on-primary transition-all active:translate-x-0.5 active:translate-y-0.5 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]" onclick="exportHistoryCSV()">
+            Export CSV
+          </button>
+        </div>
+      </div>
+
+      <!-- Métadonnées techniques (Bento Style) -->
+      <div class="grid grid-cols-1 md:grid-cols-3 border-b-2 border-primary bg-background">
+        <div class="p-6 border-b-2 md:border-b-0 md:border-r-2 border-primary flex flex-col justify-between h-32">
+          <span class="font-mono-labels text-xs text-surface-tint uppercase">Dernière séquence</span>
+          <span id="meta-last-sequence" class="font-mono-labels text-xl md:text-2xl text-primary tracking-widest">SEQ-0994-A</span>
+        </div>
+        <div class="p-6 border-b-2 md:border-b-0 md:border-r-2 border-primary flex flex-col justify-between h-32">
+          <span class="font-mono-labels text-xs text-surface-tint uppercase" id="label-error-rate">Taux de Remise</span>
+          <span id="meta-error-rate" class="font-mono-labels text-xl md:text-2xl text-primary tracking-widest">0.00%</span>
+        </div>
+        <div class="p-6 flex flex-col justify-between h-32 bg-surface-container-high relative overflow-hidden">
+          <span class="font-mono-labels text-xs text-primary uppercase flex justify-between z-10">
+            <span>Charge de base de données</span>
+            <span id="db-load-warn" class="text-secondary font-bold hidden">WARN</span>
+          </span>
+          <div class="w-full border-2 border-primary h-6 p-[2px] bg-white z-10">
+            <div id="db-load-bar" class="bg-secondary h-full transition-all duration-300" style="width: 25%"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Filtres et zone de recherche -->
+      <div id="filter-bar" class="px-margin-mobile md:px-margin-desktop py-4 bg-surface-container-low border-b-2 border-primary flex flex-col md:flex-row gap-4 items-center justify-between">
+        <div class="w-full md:w-96 relative">
+          <input type="text" id="search-input" placeholder="Rechercher par identifiant, SKU ou libellé..." class="w-full bg-white border-2 border-primary px-4 py-2 font-mono-labels text-xs focus:ring-0 focus:border-secondary placeholder-outline" oninput="applyFilters()">
+        </div>
+        <div class="flex gap-4 w-full md:w-auto justify-end">
+          <select id="filter-gender" class="bg-white border-2 border-primary px-3 py-2 font-mono-labels text-xs focus:ring-0 focus:border-secondary uppercase" onchange="applyFilters()">
+            <option value="all">Genre (Tout)</option>
+            <option value="MEN">Hommes (Men)</option>
+            <option value="WOMEN">Femmes (Women)</option>
+            <option value="UNISEX">Unisex / Autre</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Tableau rigide -->
+      <div class="flex-1 px-margin-mobile md:px-margin-desktop py-8 bg-surface">
+        <div class="border-2 border-primary bg-surface shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] flex flex-col overflow-x-auto">
+          <!-- En-tête de table -->
+          <div class="min-w-[800px] grid grid-cols-12 gap-0 border-b-2 border-primary bg-primary text-on-primary">
+            <div class="col-span-1 p-3 border-r border-primary-fixed/30 font-mono-labels text-xs uppercase">Visuel</div>
+            <div class="col-span-2 p-3 border-r border-primary-fixed/30 font-mono-labels text-xs uppercase">Horodatage</div>
+            <div class="col-span-3 p-3 border-r border-primary-fixed/30 font-mono-labels text-xs uppercase">Identifiant / SKU</div>
+            <div class="col-span-3 p-3 border-r border-primary-fixed/30 font-mono-labels text-xs uppercase">Nomenclature</div>
+            <div class="col-span-1 p-3 border-r border-primary-fixed/30 font-mono-labels text-xs uppercase text-right">Prix</div>
+            <div class="col-span-2 p-3 font-mono-labels text-xs uppercase text-center">Marque</div>
+          </div>
+          <!-- Lignes de la table -->
+          <div id="history-rows-container" class="min-w-[800px] flex flex-col">
+            <!-- Injecté dynamiquement par JavaScript -->
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== VUE 3 : DETAILS PRODUIT ==================== -->
+    <section id="view-detail" class="hidden flex-1 flex flex-col p-6 md:p-12 grid-bg">
+      <div class="w-full max-w-container-max mx-auto">
+        <!-- Barre d'action rapide -->
+        <div class="mb-6 flex justify-between items-center">
+          <button class="flex items-center gap-2 border-2 border-primary bg-white text-primary font-bold px-4 py-2 hover:bg-primary hover:text-on-primary transition-all active:translate-x-0.5 active:translate-y-0.5 hard-shadow" onclick="switchView('live')">
+            <span class="material-symbols-outlined text-[18px]">arrow_back</span>
+            RETOUR AU SCANNER
+          </button>
+          <div class="font-mono-labels text-xs text-primary flex items-center gap-2">
+            <span class="w-2 h-2 bg-secondary"></span>
+            ETAT: CHARGÉ EN MÉMOIRE
+          </div>
+        </div>
+        
+        <!-- Bento Grid "Shattered Bento" -->
+        <div class="grid grid-cols-1 md:grid-cols-12 gap-0 border-2 border-primary bg-primary relative">
+          <!-- Cellule 1 : Image du produit -->
+          <div class="md:col-span-7 border-r-0 md:border-r-2 border-b-2 md:border-b-0 border-primary bg-surface relative h-[300px] md:h-[500px] overflow-hidden group">
+            <div id="detail-media-label" class="absolute top-0 left-0 bg-primary text-on-primary font-mono-labels text-[10px] px-2 py-1 z-20 border-r-2 border-b-2 border-primary">
+              MEDIA_FEED_01
+            </div>
+            <div id="detail-image" class="w-full h-full bg-cover bg-center grain-overlay grayscale contrast-125 transition-transform duration-500 group-hover:scale-105" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuDxTDPtWDYg6km0vWG6Ms8NkbHuFHIRTQDZz6_hPvEzWvi0oGYzXgd8BMsGPU3ml4c9jvy2uFUhds27HZ3RyDnrYr1qG2cj3bEORzRs1-45jKqYcqjYYTt6erF2fF-hJwca1RgutYMNaSR0QVp7uSqJgT54C7jfWnqXukzc7Lu6I_sL7sRMLNhiadgYBOBnuqdDuGZU83U-UjBWnXnzy69u4JtzZk0I9ynDdKzSgvwwdH4TP5dTQ88tdY12d6N3FhQCOErwlnOYAS-9');"></div>
+          </div>
+          
+          <!-- Cellules 2 : Détails techniques et Prix -->
+          <div class="md:col-span-5 grid grid-rows-6 bg-primary gap-[2px]">
+            <!-- Titre et SKU -->
+            <div class="row-span-2 bg-surface p-6 flex flex-col justify-end relative">
+              <div class="absolute top-0 right-0 border-l-2 border-b-2 border-primary bg-surface p-2">
+                <span class="material-symbols-outlined text-primary">barcode_scanner</span>
+              </div>
+              <h2 id="detail-title" class="text-2xl md:text-3xl font-black uppercase leading-none tracking-tighter text-primary">
+                OPTICAL SENSOR ARRAY MODULE
+              </h2>
+              <span id="detail-sku" class="text-xs font-mono-labels text-surface-tint mt-2">SKU: X-99-ALPHA-772</span>
+            </div>
+            
+            <!-- Prix (Accent) -->
+            <div class="row-span-2 bg-secondary text-on-secondary p-6 flex flex-col items-center justify-center border-y-2 border-primary relative overflow-hidden">
+              <div class="absolute inset-0 opacity-10 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-primary to-transparent"></div>
+              <div class="flex flex-col items-center justify-center z-10">
+                <!-- Prix Solde s'il existe -->
+                <div id="detail-price-discount" class="text-3xl md:text-5xl font-black tracking-tighter text-white leading-none"></div>
+                <!-- Prix d'origine -->
+                <div id="detail-price" class="text-lg md:text-2xl font-black tracking-tighter opacity-80 mt-1"></div>
+              </div>
+            </div>
+            
+            <!-- Grille des Spécifications -->
+            <div class="row-span-2 grid grid-cols-2 gap-[2px] bg-primary">
+              <div class="bg-surface p-3 flex flex-col justify-between">
+                <span class="font-mono-labels text-[9px] text-surface-tint uppercase">Marque</span>
+                <span id="detail-brand" class="font-bold text-xs uppercase text-primary truncate">FLOGART</span>
+              </div>
+              <div class="bg-surface p-3 flex flex-col justify-between">
+                <span class="font-mono-labels text-[9px] text-surface-tint uppercase">Taille</span>
+                <span id="detail-size" class="font-bold text-xs uppercase text-primary">STD</span>
+              </div>
+              <div class="bg-surface p-3 flex flex-col justify-between">
+                <span class="font-mono-labels text-[9px] text-surface-tint uppercase">Couleur</span>
+                <span id="detail-color" class="font-bold text-xs uppercase text-primary truncate">KAHVE</span>
+              </div>
+              <div class="bg-surface p-3 flex flex-col justify-between">
+                <span class="font-mono-labels text-[9px] text-surface-tint uppercase">Genre</span>
+                <span id="detail-gender" class="font-bold text-xs uppercase text-primary">WOMEN</span>
+              </div>
+              <div class="bg-surface p-3 flex flex-col justify-between">
+                <span class="font-mono-labels text-[9px] text-surface-tint uppercase">Groupe</span>
+                <span id="detail-group" class="font-bold text-xs uppercase text-primary truncate">SHOES</span>
+              </div>
+              <div class="bg-surface p-3 flex flex-col justify-between">
+                <span class="font-mono-labels text-[9px] text-surface-tint uppercase">Type / Marché</span>
+                <span id="detail-type-market" class="font-bold text-xs uppercase text-primary truncate">ACC / LEISUR</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Boutons d'Action Impression -->
+        <div class="mt-6 flex justify-end gap-4">
+          <button class="border-2 border-primary bg-white text-primary font-bold text-xs md:text-sm px-6 py-4 hover:bg-primary hover:text-on-primary transition-colors hard-shadow uppercase" onclick="simulatePrint('local')">
+            Imprimer Localement
+          </button>
+          <button class="border-2 border-primary bg-primary text-on-primary font-bold text-xs md:text-sm px-6 py-4 hover:bg-secondary-container transition-colors hard-shadow uppercase" onclick="simulatePrint('remote')">
+            Imprimer à distance (Serveur)
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== VUE 4 : MARKETING KIT ==================== -->
+    <section id="view-marketing" class="hidden flex-1 p-6 md:p-12 bg-[#f9f9f9]">
+      <div class="max-w-4xl mx-auto border-4 border-black p-6 md:p-12 bg-white hard-shadow-lg font-sans text-black relative">
+        <div class="absolute top-4 right-4 bg-black text-white px-3 py-1 font-mono-labels text-xs uppercase">Ref: PROMO-V.01</div>
+        
+        <div class="mb-12 border-b-4 border-black pb-8">
+          <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuCmDaLKmxCsOC6qDMX2viYegk-hXUFmMVZBydkHbZydubrSeRrLnY2qyIo6SkpEIIiDiUL0uaegaAPoQh4IKrFBeYtr9woWfcAz_wUESidz84eaFCAemPDwGx9IB-E24gPuuRJ6Y6MOhLldD24rYwL6nnxKvKo8r_3XK0p8eEn-jM-EW0AjH2ShibUnPS4wIkrT0oHR4jPfn5emvHwdAhzIaAG-inEGqkHJLthVHh2U0z6D8lzfVUxmJMbX9NmZmEmql0P_EN112hLG" alt="SCAN_CORE_V.01 En-tête Email" class="w-full h-auto border-2 border-black mb-8 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
+          <h1 class="text-4xl md:text-6xl font-black uppercase tracking-tighter mb-4 leading-none">SCAN_CORE_V.01</h1>
+          <p class="text-sm md:text-base font-mono bg-[#D9410E] text-white inline-block px-4 py-1">Statut du Système : Prêt pour le Déploiement</p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-12 mb-12">
+          <div class="space-y-6">
+            <h2 class="text-3xl font-extrabold uppercase leading-tight border-l-8 border-[#D9410E] pl-4">Précision Industrielle.<br>Latence Zéro.</h2>
+            <p class="text-base md:text-lg leading-relaxed text-gray-700">
+              SCAN_CORE_V.01 n'est pas qu'un simple scanner. C'est une extension de votre infrastructure. Conçu pour les environnements à haute cadence, il offre une rapidité d'exécution sans compromis, enveloppée dans une interface brutaliste pensée pour la performance pure.
+            </p>
+            <ul class="space-y-2 font-mono-labels text-xs md:text-sm uppercase text-gray-800">
+              <li class="flex items-center"><span class="w-3 h-3 bg-black mr-3"></span>Scan Instantané (Reticule Alpha-7)</li>
+              <li class="flex items-center"><span class="w-3 h-3 bg-black mr-3"></span>Visualisation Shattered Bento</li>
+              <li class="flex items-center"><span class="w-3 h-3 bg-black mr-3"></span>Logs Techniques en Temps Réel</li>
+              <li class="flex items-center"><span class="w-3 h-3 bg-[#D9410E] mr-3"></span>Export CSV & Impression Directe</li>
+            </ul>
+          </div>
+
+          <div class="border-4 border-black p-8 bg-surface-container-low relative">
+            <h3 class="text-xl font-black uppercase mb-6 border-b-2 border-black pb-2">Arguments Clés</h3>
+            <div class="space-y-6">
+              <div>
+                <span class="block text-3xl font-bold mb-1">0.01ms</span>
+                <span class="block text-xs font-mono-labels uppercase text-gray-500">Latence de Traitement</span>
+              </div>
+              <div>
+                <span class="block text-3xl font-bold mb-1">100%</span>
+                <span class="block text-xs font-mono-labels uppercase text-gray-500">Intégrité des Données</span>
+              </div>
+              <div>
+                <span class="block text-3xl font-bold mb-1">∞</span>
+                <span class="block text-xs font-mono-labels uppercase text-gray-500">Évolutivité du Système</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="flex flex-col md:flex-row gap-6 mt-12 pt-8 border-t-4 border-black">
+          <div class="flex-1">
+            <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuBa77KWofvG3mZYu4MolxU5gD2nh8Iu-fzhzDE8qekwx-6NDk2WpJ316-WwQDCYB3CjtgoIsysuE0MXLYjwR2Dggftsq3iYNt6bIyZQ9OheC_nUvSXAtV12BaYQElo6OrYvIkgUfnckfpNGc44dtVZUu3fGARM98Ipnu5RwK_KqCrH4LoTCbxv3Pq3tW1W1VF7XlfW40q3o5O3C7eUconTKvFg3e83X8O9SYY0iS_jMmMmH4EXwn9kL5P6lKse8xJV5GopkXV-e1N3j" alt="Carte Réseau Social" class="w-full h-auto border-2 border-black hover:scale-[1.02] transition-transform shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+            <p class="font-mono-labels text-[10px] text-gray-500 mt-2 text-center uppercase">Réseaux Sociaux (1:1)</p>
+          </div>
+          <div class="flex-1">
+            <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuDMsaFkdQcuf_bFZ-x-9fuCfv-FLPdv3hkdYc7gNdnr4y5SsmA8lu3vXuKWOZ14VgdyylZKL4pbbApLfBqp_I39-YzSJKvB6i00-QHrKAYKG-aK-824M6atpaYMBwOTAyGC6Alz631mbTOyGw9wA_ybTVJtO1hMfu_NFVSqrlCzU9FELKo0dcHBIhIg-hAImMIV4UnBU-4RJLZ3wtS2t0gCXQSUkTVi0urxkZvm_AmxYJzzSRwuyvbqDDAeeVw4hM4fBFC1OcwPLskn" alt="Bannière Pub" class="w-full h-auto border-2 border-black hover:scale-[1.02] transition-transform shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+            <p class="font-mono-labels text-[10px] text-gray-500 mt-2 text-center uppercase">Bannière Publicitaire (16:9)</p>
+          </div>
+        </div>
+
+        <div class="mt-12 text-center">
+          <p class="font-mono-labels text-xs uppercase text-gray-400">// SCAN_CORE_V.01 // SYSTÈME DE SCAN INDUSTRIEL // FIN // </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== VUE 5 : CONFIGURATION ==================== -->
+    <section id="view-config" class="hidden flex-1 p-6 md:p-12 grid-bg">
+      <div class="max-w-2xl mx-auto bg-white border-2 border-primary p-8 hard-shadow">
+        <h2 class="text-3xl font-black uppercase mb-6 border-b-2 border-primary pb-2">Configuration Système</h2>
+        
+        <!-- Formulaire d'ajout de pièce -->
+        <div class="space-y-6">
+          <h3 class="font-mono-labels text-xs font-bold uppercase text-secondary">Ajouter un produit scannable personnalisé</h3>
+          
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label class="block font-mono-labels text-[10px] uppercase text-gray-600 mb-1">Nom du Produit</label>
+              <input type="text" id="config-name" placeholder="Ex: Pneumatic Valve P-10" class="w-full bg-white border-2 border-primary px-3 py-2 font-mono-labels text-xs focus:ring-0 focus:border-secondary">
+            </div>
+            <div>
+              <label class="block font-mono-labels text-[10px] uppercase text-gray-600 mb-1">Référence / SKU</label>
+              <input type="text" id="config-sku" placeholder="Ex: PNEU-V10-DE" class="w-full bg-white border-2 border-primary px-3 py-2 font-mono-labels text-xs focus:ring-0 focus:border-secondary">
+            </div>
+            <div>
+              <label class="block font-mono-labels text-[10px] uppercase text-gray-600 mb-1">Prix ($)</label>
+              <input type="number" step="0.01" id="config-price" placeholder="Ex: 120.00" class="w-full bg-white border-2 border-primary px-3 py-2 font-mono-labels text-xs focus:ring-0 focus:border-secondary">
+            </div>
+            <div>
+              <label class="block font-mono-labels text-[10px] uppercase text-gray-600 mb-1">Poids (KG)</label>
+              <input type="text" id="config-weight" placeholder="Ex: 0.85 KG" class="w-full bg-white border-2 border-primary px-3 py-2 font-mono-labels text-xs focus:ring-0 focus:border-secondary">
+            </div>
+            <div>
+              <label class="block font-mono-labels text-[10px] uppercase text-gray-600 mb-1">Origine Usine</label>
+              <input type="text" id="config-origin" placeholder="Ex: FR-PARIS" class="w-full bg-white border-2 border-primary px-3 py-2 font-mono-labels text-xs focus:ring-0 focus:border-secondary">
+            </div>
+            <div>
+              <label class="block font-mono-labels text-[10px] uppercase text-gray-600 mb-1">Numéro de Lot</label>
+              <input type="text" id="config-batch" placeholder="Ex: B-4024" class="w-full bg-white border-2 border-primary px-3 py-2 font-mono-labels text-xs focus:ring-0 focus:border-secondary">
+            </div>
+          </div>
+          
+          <div>
+            <label class="block font-mono-labels text-[10px] uppercase text-gray-600 mb-1">Image URL (Optionnel)</label>
+            <input type="url" id="config-image" placeholder="https://..." class="w-full bg-white border-2 border-primary px-3 py-2 font-mono-labels text-xs focus:ring-0 focus:border-secondary">
+          </div>
+
+          <div>
+            <label class="block font-mono-labels text-[10px] uppercase text-gray-600 mb-1">Intégrité</label>
+            <select id="config-integrity" class="w-full bg-white border-2 border-primary px-3 py-2 font-mono-labels text-xs focus:ring-0 focus:border-secondary uppercase">
+              <option value="verified">Verified (Conforme)</option>
+              <option value="anomaly">Anomaly Det. (Anomalie)</option>
+            </select>
+          </div>
+
+          <button class="w-full bg-secondary text-on-secondary border-2 border-primary py-3 font-bold text-xs uppercase tracking-widest hover:bg-primary transition-colors hard-shadow" onclick="addCustomProduct()">
+            Enregistrer le produit dans la base de scan
+          </button>
+        </div>
+
+        <!-- Liste de codes-barres de démonstration Supabase -->
+        <div class="mt-8 border-t-2 border-primary pt-6 space-y-4">
+          <h3 class="font-mono-labels text-xs font-bold uppercase text-primary">// CODES_BARRES_FLODB_DEMO</h3>
+          <p class="text-xs text-gray-500">
+            Copiez ces codes-barres réels de la base de données de Flo pour tester la recherche en temps réel :
+          </p>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 font-mono-labels text-[11px]">
+            <div class="bg-surface-low border border-primary p-2 flex justify-between items-center">
+              <span>8683218016845 (Flogart Shoes)</span>
+              <button class="text-secondary hover:underline cursor-pointer font-bold" onclick="copyDemoCode('8683218016845')">[COPIER]</button>
+            </div>
+            <div class="bg-surface-low border border-primary p-2 flex justify-between items-center">
+              <span>8683218018856 (Kinetix Shoes)</span>
+              <button class="text-secondary hover:underline cursor-pointer font-bold" onclick="copyDemoCode('8683218018856')">[COPIER]</button>
+            </div>
+            <div class="bg-surface-low border border-primary p-2 flex justify-between items-center">
+              <span>8683218018924 (Flogart Vizon)</span>
+              <button class="text-secondary hover:underline cursor-pointer font-bold" onclick="copyDemoCode('8683218018924')">[COPIER]</button>
+            </div>
+            <div class="bg-surface-low border border-primary p-2 flex justify-between items-center">
+              <span>8683218019013 (Adanni Shoes)</span>
+              <button class="text-secondary hover:underline cursor-pointer font-bold" onclick="copyDemoCode('8683218019013')">[COPIER]</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="mt-12 border-t-2 border-primary pt-6 space-y-4">
+          <h3 class="font-mono-labels text-xs font-bold uppercase text-error">Zone de Danger</h3>
+          <p class="text-xs text-gray-500">
+            Les actions suivantes modifient l'état permanent du stockage local de votre nœud.
+          </p>
+          <div class="flex gap-4">
+            <button class="flex-1 bg-white text-error border-2 border-error py-2 font-mono-labels text-xs uppercase hover:bg-error hover:text-white transition-colors" onclick="resetDatabase()">
+              Réinitialiser l'historique de scan
+            </button>
+            <button class="flex-1 bg-white text-primary border-2 border-primary py-2 font-mono-labels text-xs uppercase hover:bg-surface-dim transition-colors" onclick="loadDefaultMockData()">
+              Recharger l'historique par défaut
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Modals Système (Ex: Confirmation) -->
+  <div id="modal-reset" class="fixed inset-0 z-50 flex items-center justify-center bg-primary/40 backdrop-blur-xs hidden">
+    <div class="bg-white border-4 border-primary p-8 max-w-sm hard-shadow-lg w-full">
+      <h3 class="text-xl font-black uppercase mb-4 text-error">Alerte Système</h3>
+      <p class="text-xs font-mono-labels text-gray-600 uppercase mb-6 leading-relaxed">
+        Vous êtes sur le point de purger l'intégralité du journal de scan. Cette action est irréversible. Confirmer la commande de réinitialisation ?
+      </p>
+      <div class="flex gap-4">
+        <button class="flex-1 border-2 border-primary bg-primary text-on-primary py-2 font-mono-labels text-xs uppercase hover:bg-secondary transition-colors" onclick="doReset()">
+          Confirmer
+        </button>
+        <button class="flex-1 border-2 border-primary bg-white text-primary py-2 font-mono-labels text-xs uppercase hover:bg-surface-dim transition-colors" onclick="cancelReset()">
+          Annuler
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Barre de navigation inférieure pour Mobile -->
+  <nav class="fixed bottom-0 left-0 right-0 z-50 bg-background border-t-2 border-primary h-16 flex md:hidden justify-around items-center bg-white shadow-[0_-4px_0_0_rgba(0,0,0,0.05)]">
+    <button id="mobile-btn-live" class="flex flex-col items-center gap-1 text-secondary font-bold font-mono-labels text-[9px] uppercase tracking-wider py-1 w-1/4" onclick="switchView('live')">
+      <span class="material-symbols-outlined text-[20px]">barcode_scanner</span>
+      <span>Scanner</span>
+    </button>
+    <button id="mobile-btn-history" class="flex flex-col items-center gap-1 text-primary font-medium font-mono-labels text-[9px] uppercase tracking-wider py-1 w-1/4" onclick="switchView('history')">
+      <span class="material-symbols-outlined text-[20px]">history_edu</span>
+      <span>Historique</span>
+    </button>
+    <button id="mobile-btn-marketing" class="flex flex-col items-center gap-1 text-primary font-medium font-mono-labels text-[9px] uppercase tracking-wider py-1 w-1/4" onclick="switchView('marketing')">
+      <span class="material-symbols-outlined text-[20px]">description</span>
+      <span>Kit</span>
+    </button>
+    <button id="mobile-btn-config" class="flex flex-col items-center gap-1 text-primary font-medium font-mono-labels text-[9px] uppercase tracking-wider py-1 w-1/4" onclick="switchView('config')">
+      <span class="material-symbols-outlined text-[20px]">settings_input_component</span>
+      <span>Config</span>
+    </button>
+  </nav>
+
+  <!-- Script Applicatif -->
+  <script src="app.js"></script>
+</body>
+</html>

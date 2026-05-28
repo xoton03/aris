@@ -1,0 +1,123 @@
+/* Importation des polices de caractères */
+@import url('https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;700;800&family=JetBrains+Mono:wght@500;800&display=swap');
+
+/* Variables CSS */
+:root {
+  --primary: #000000;
+  --secondary: #aa3000;
+  --accent: #D9410E;
+  --background: #f9f9f9;
+  --surface: #ffffff;
+  --surface-dim: #dadada;
+  --surface-low: #f3f3f3;
+  --surface-high: #e8e8e8;
+  --outline: #7e7576;
+}
+
+body {
+  font-family: 'Hanken Grotesk', sans-serif;
+  background-color: var(--background);
+  color: var(--primary);
+  overflow-x: hidden;
+  margin: 0;
+}
+
+.font-mono-labels {
+  font-family: 'JetBrains Mono', monospace;
+}
+
+/* Grille d'arrière-plan technique */
+.grid-bg {
+  background-size: 40px 40px;
+  background-image: 
+    linear-gradient(to right, rgba(0, 0, 0, 0.05) 1px, transparent 1px), 
+    linear-gradient(to bottom, rgba(0, 0, 0, 0.05) 1px, transparent 1px);
+}
+
+/* Ligne de scan animée */
+.scan-line {
+  position: absolute;
+  width: 100%;
+  height: 3px;
+  background-color: var(--accent);
+  animation: scan 2.5s ease-in-out infinite;
+  box-shadow: 0 0 12px var(--accent);
+  z-index: 10;
+}
+
+@keyframes scan {
+  0% { top: 5%; }
+  50% { top: 95%; }
+  100% { top: 5%; }
+}
+
+/* Curseur clignotant terminal */
+.cursor-blink::after {
+  content: '_';
+  animation: blink 1s step-end infinite;
+}
+
+@keyframes blink {
+  from, to { color: transparent }
+  50% { color: var(--primary) }
+}
+
+/* Ombres brutales */
+.hard-shadow {
+  box-shadow: 4px 4px 0px 0px #000000;
+}
+
+.hard-shadow-lg {
+  box-shadow: 8px 8px 0px 0px #000000;
+}
+
+.hard-shadow-accent {
+  box-shadow: 4px 4px 0px 0px var(--accent);
+}
+
+.hard-shadow-hover {
+  transition: transform 0.1s ease, box-shadow 0.1s ease;
+}
+
+.hard-shadow-hover:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: 6px 6px 0px 0px #000000;
+}
+
+.hard-shadow-hover:active {
+  transform: translate(2px, 2px);
+  box-shadow: 2px 2px 0px 0px #000000;
+}
+
+/* Grain de caméra de surveillance */
+.grain-overlay::before {
+  content: "";
+  position: absolute;
+  top: 0; left: 0; width: 100%; height: 100%;
+  pointer-events: none;
+  background-image: radial-gradient(rgba(0,0,0,0.15) 1px, transparent 0), radial-gradient(rgba(0,0,0,0.15) 1px, transparent 0);
+  background-size: 4px 4px;
+  background-position: 0 0, 2px 2px;
+  opacity: 0.3;
+  z-index: 5;
+}
+
+/* Style personnalisé des barres de défilement */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--surface-low);
+  border-left: 2px solid var(--primary);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--primary);
+  border: 1px solid var(--surface-low);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--accent);
+}
